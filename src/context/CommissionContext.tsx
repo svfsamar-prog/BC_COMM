@@ -52,8 +52,95 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [selectedAgent, setSelectedAgent] = useState<CommissionRecord | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
-  const [activeTab, setActiveTab] = useState<'overview' | 'register' | 'schemes'>('overview');
   const [isLoadingDb, setIsLoadingDb] = useState(false);
+
+  // 1. Remember Last Opened Tab
+  const [activeTab, setActiveTabState] = useState<'overview' | 'register' | 'schemes'>('overview');
+
+  // 2. Remember Last Selected Period
+  const [selectedPeriod, setSelectedPeriodState] = useState<string>('AUGUST 2026');
+
+  // 3. Remember Last Applied Filters
+  const [filters, setFiltersState] = useState<FilterState>({
+    searchQuery: '',
+    state: '',
+    zone: '',
+    dist: '',
+    baseBranch: '',
+    monthFrom: '',
+    monthTo: '',
+    activityFilter: 'all',
+  });
+
+  // Restore saved settings on mount
+  useEffect(() => {
+    try {
+      const savedTab = localStorage.getItem('svf_active_tab') as any;
+      if (savedTab && ['overview', 'register', 'schemes'].includes(savedTab)) {
+        setActiveTabState(savedTab);
+      }
+
+      const savedPeriod = localStorage.getItem('svf_selected_period');
+      if (savedPeriod) {
+        setSelectedPeriodState(savedPeriod);
+      }
+
+      const savedFilters = localStorage.getItem('svf_filters');
+      if (savedFilters) {
+        const parsed = JSON.parse(savedFilters);
+        setFiltersState((prev) => ({ ...prev, ...parsed }));
+      }
+    } catch (e) {
+      console.warn('LocalStorage restore error:', e);
+    }
+  }, []);
+
+  const setActiveTab = (tab: 'overview' | 'register' | 'schemes') => {
+    setActiveTabState(tab);
+    try {
+      localStorage.setItem('svf_active_tab', tab);
+    } catch (e) {}
+  };
+
+  const setSelectedPeriod = (period: string) => {
+    setSelectedPeriodState(period);
+    try {
+      localStorage.setItem('svf_selected_period', period);
+    } catch (e) {}
+
+    if (period === 'ALL') {
+      setFilters((prev) => ({ ...prev, monthFrom: '', monthTo: '' }));
+    } else {
+      setFilters((prev) => ({ ...prev, monthFrom: period, monthTo: period }));
+    }
+  };
+
+  const setFilters: React.Dispatch<React.SetStateAction<FilterState>> = (updater) => {
+    setFiltersState((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater;
+      try {
+        localStorage.setItem('svf_filters', JSON.stringify(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  const handleFilterChange = (newFilters: Partial<FilterState>) => {
+    setFilters((prev) => ({ ...prev, ...newFilters }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters({
+      searchQuery: '',
+      state: '',
+      zone: '',
+      dist: '',
+      baseBranch: '',
+      monthFrom: selectedPeriod !== 'ALL' ? selectedPeriod : '',
+      monthTo: selectedPeriod !== 'ALL' ? selectedPeriod : '',
+      activityFilter: 'all',
+    });
+  };
 
   // Fetch persisted statements from database on mount
   useEffect(() => {
@@ -85,44 +172,16 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return Array.from(set).sort();
   }, [records]);
 
-  // Selected single period
-  const [selectedPeriod, setSelectedPeriodState] = useState<string>(() => {
-    return availableMonths[0] || 'AUGUST 2026';
-  });
-
   // Keep selectedPeriod valid when dataset changes
   useEffect(() => {
     if (availableMonths.length > 0 && !availableMonths.includes(selectedPeriod) && selectedPeriod !== 'ALL') {
-      setSelectedPeriodState(availableMonths[availableMonths.length - 1] || 'AUGUST 2026');
+      const fallback = availableMonths[availableMonths.length - 1] || 'AUGUST 2026';
+      setSelectedPeriodState(fallback);
+      try {
+        localStorage.setItem('svf_selected_period', fallback);
+      } catch (e) {}
     }
   }, [availableMonths, selectedPeriod]);
-
-  const [filters, setFilters] = useState<FilterState>({
-    searchQuery: '',
-    state: '',
-    zone: '',
-    dist: '',
-    baseBranch: '',
-    monthFrom: '',
-    monthTo: '',
-    activityFilter: 'all',
-  });
-
-  const setSelectedPeriod = (period: string) => {
-    setSelectedPeriodState(period);
-    if (period === 'ALL') {
-      setFilters((prev) => ({ ...prev, monthFrom: '', monthTo: '' }));
-    } else {
-      setFilters((prev) => ({ ...prev, monthFrom: period, monthTo: period }));
-    }
-  };
-
-  // Sync initial period filter
-  useEffect(() => {
-    if (selectedPeriod && selectedPeriod !== 'ALL') {
-      setFilters((prev) => ({ ...prev, monthFrom: selectedPeriod, monthTo: selectedPeriod }));
-    }
-  }, [selectedPeriod]);
 
   // Dynamic cascading dropdowns
   const availableStates = useMemo(() => {
@@ -163,28 +222,10 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return Array.from(new Set(list.map((r) => r.baseBranch).filter(Boolean))).sort();
   }, [records, selectedPeriod, filters.state, filters.zone, filters.dist]);
 
-  const handleFilterChange = (newFilters: Partial<FilterState>) => {
-    setFilters((prev) => ({ ...prev, ...newFilters }));
-  };
-
-  const handleResetFilters = () => {
-    setFilters({
-      searchQuery: '',
-      state: '',
-      zone: '',
-      dist: '',
-      baseBranch: '',
-      monthFrom: selectedPeriod !== 'ALL' ? selectedPeriod : '',
-      monthTo: selectedPeriod !== 'ALL' ? selectedPeriod : '',
-      activityFilter: 'all',
-    });
-  };
-
-  // 1-step intelligent Import (auto-replace existing month, add new month) + Database Persistence + Undo
+  // 1-step intelligent Import + Database Persistence + Undo
   const handleImportData = async (newRecords: CommissionRecord[]) => {
     if (!newRecords || newRecords.length === 0) return;
 
-    // Snapshot for Undo
     const prevData = [...records];
     setPreviousSnapshot(prevData);
 
@@ -201,13 +242,11 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
     handleResetFilters();
 
-    // Show initial UI toast
     setToast({
       id: Date.now(),
       message: `${newRecords.length} BCAs imported for ${targetMonthStr}. Saving to database...`,
       onUndo: async () => {
         setRecords(prevData);
-        // Persist rollback to database
         try {
           await fetch('/api/records', {
             method: 'POST',
@@ -224,7 +263,6 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       },
     });
 
-    // Save asynchronously to Supabase Database
     try {
       const res = await fetch('/api/records', {
         method: 'POST',
