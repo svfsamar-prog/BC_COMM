@@ -200,14 +200,14 @@ export const AgentDetailDrawer: React.FC = () => {
           <div className="p-4 border-t border-[#E5E7EB] bg-[#FAFAFA] flex items-center gap-2">
             <button
               onClick={handleDownloadPdf}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-medium text-white bg-[#0F2942] hover:bg-[#0A1D30] rounded-md transition-colors shadow-sm"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-semibold text-white bg-[#0A5C36] hover:bg-[#084B26] rounded-lg transition-colors shadow-xs"
             >
               <FileText className="w-4 h-4" />
-              <span>Download PDF Slip</span>
+              <span>Download PDF Voucher</span>
             </button>
             <button
               onClick={handleDownloadExcel}
-              className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-medium text-[#374151] bg-white hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-md transition-colors"
+              className="flex items-center justify-center gap-1.5 py-2 px-3 text-xs font-medium text-[#374151] bg-white hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-lg transition-colors"
             >
               <Download className="w-4 h-4 text-[#6B7280]" />
               <span>Excel</span>

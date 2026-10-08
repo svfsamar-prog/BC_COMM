@@ -212,7 +212,7 @@ export const UploadModal: React.FC = () => {
           <button
             type="button"
             onClick={() => setIsUploadModalOpen(false)}
-            className="px-3.5 py-2 text-xs font-medium text-[#374151] bg-white hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-md transition-colors"
+            className="px-3.5 py-2 text-xs font-medium text-[#374151] bg-white hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-lg transition-colors"
           >
             Cancel
           </button>
@@ -220,7 +220,7 @@ export const UploadModal: React.FC = () => {
             type="button"
             onClick={handleImport}
             disabled={!selectedFile || isParsing}
-            className="px-4 py-2 text-xs font-semibold text-white bg-[#0F2942] hover:bg-[#0A1D30] disabled:opacity-50 disabled:pointer-events-none rounded-md transition-colors flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 text-xs font-semibold text-white bg-[#0A5C36] hover:bg-[#084B26] disabled:opacity-50 disabled:pointer-events-none rounded-lg transition-colors flex items-center gap-1.5 shadow-xs"
           >
             {isParsing ? 'Importing...' : 'Import Statement'}
           </button>

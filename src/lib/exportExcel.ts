@@ -60,7 +60,7 @@ export async function exportFilteredCommissionExcel(
   titleCell.fill = {
     type: 'pattern',
     pattern: 'solid',
-    fgColor: { argb: 'FF0F172A' }, // Deep Navy
+    fgColor: { argb: 'FF004D25' }, // Deep Forest Green
   };
   titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
   worksheet.getRow(1).height = 28;
@@ -75,14 +75,14 @@ export async function exportFilteredCommissionExcel(
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF1E293B' }, // Slate Navy
+      fgColor: { argb: 'FF0A5C36' }, // Sanjivani Green
     };
     cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
     cell.border = {
-      top: { style: 'thin', color: { argb: 'FF334155' } },
-      left: { style: 'thin', color: { argb: 'FF334155' } },
-      bottom: { style: 'medium', color: { argb: 'FF0F172A' } },
-      right: { style: 'thin', color: { argb: 'FF334155' } },
+      top: { style: 'thin', color: { argb: 'FF15803D' } },
+      left: { style: 'thin', color: { argb: 'FF15803D' } },
+      bottom: { style: 'medium', color: { argb: 'FF004D25' } },
+      right: { style: 'thin', color: { argb: 'FF15803D' } },
     };
     worksheet.getColumn(idx + 1).width = col.width;
   });
@@ -207,10 +207,10 @@ export async function exportFilteredCommissionExcel(
     cell.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FF0F172A' }, // Navy Footer
+      fgColor: { argb: 'FF0A5C36' }, // Forest Green Footer
     };
     cell.border = {
-      top: { style: 'medium', color: { argb: 'FF334155' } },
+      top: { style: 'medium', color: { argb: 'FF004D25' } },
       bottom: { style: 'double', color: { argb: 'FFFFFFFF' } },
     };
     if (colNumber === 21) {

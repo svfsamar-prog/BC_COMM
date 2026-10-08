@@ -2,8 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
-import { CheckCircle2, AlertTriangle, XCircle, Shield, Search, ArrowRight, Building, Calendar, MapPin, User, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { CheckCircle2, AlertTriangle, XCircle, Shield, Search, ArrowRight, Building, Calendar, MapPin, User, X } from 'lucide-react';
 
 interface VerifyResult {
   status: 'valid' | 'superseded' | 'revoked' | 'not_found' | 'invalid' | 'error';
@@ -67,27 +66,37 @@ export default function VerifyVoucherPage() {
     }
   };
 
+  const handleClose = () => {
+    if (typeof window !== 'undefined') {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.close();
+      }
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between text-[#0A0A0A] font-sans antialiased py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#F8FAFC] flex flex-col justify-between text-[#0A0A0A] font-sans antialiased py-8 px-4 sm:px-6 select-none">
       <div className="max-w-md w-full mx-auto space-y-6">
-        {/* Organization Brand Header */}
-        <div className="text-center space-y-1.5">
-          <div className="inline-flex items-center justify-center w-10 h-10 rounded-lg bg-[#0F2942] text-white font-black text-sm tracking-wider shadow-sm mb-1">
-            SVF
-          </div>
-          <h1 className="text-base font-bold text-[#0F2942] leading-tight">
-            Sanjivani Vikas Foundation
-          </h1>
-          <p className="text-xs text-[#6B7280]">
+        {/* Official Sanjivani Logo Header */}
+        <div className="text-center space-y-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="https://res.cloudinary.com/date69bba/image/upload/v1774602823/SanjivaniVikasLogo_new_2_hpwra4.png"
+            alt="Sanjivani Vikas Foundation"
+            className="h-14 w-auto mx-auto object-contain"
+          />
+          <p className="text-xs font-semibold text-[#0A5C36]">
             Official Voucher Verification & Audit Registry
           </p>
         </div>
 
         {/* Main Verification Card */}
-        <div className="bg-white border border-[#E5E7EB] rounded-xl shadow-lg overflow-hidden">
+        <div className="bg-white border border-[#E5E7EB] rounded-2xl shadow-xl overflow-hidden">
           {loading ? (
             <div className="p-8 text-center space-y-3">
-              <div className="w-8 h-8 border-3 border-[#0F2942] border-t-transparent rounded-full animate-spin mx-auto" />
+              <div className="w-8 h-8 border-3 border-[#0A5C36] border-t-transparent rounded-full animate-spin mx-auto" />
               <p className="text-xs text-[#6B7280] font-medium">Verifying cryptographic signature with registry...</p>
             </div>
           ) : result ? (
@@ -95,7 +104,7 @@ export default function VerifyVoucherPage() {
               {/* Status Header Banner */}
               {result.status === 'valid' && (
                 <div className="p-5 bg-[#F0FDF4] border-b border-[#DCFCE7] flex items-center gap-3">
-                  <CheckCircle2 className="w-7 h-7 text-[#15803D] flex-shrink-0" />
+                  <CheckCircle2 className="w-7 h-7 text-[#15803D] shrink-0" />
                   <div>
                     <h2 className="text-sm font-bold text-[#166534]">✔ Genuine & Verified Voucher</h2>
                     <p className="text-[11px] text-[#15803D]">
@@ -107,7 +116,7 @@ export default function VerifyVoucherPage() {
 
               {result.status === 'superseded' && (
                 <div className="p-5 bg-[#FFFBEB] border-b border-[#FEF3C7] flex items-center gap-3">
-                  <AlertTriangle className="w-7 h-7 text-[#D97706] flex-shrink-0" />
+                  <AlertTriangle className="w-7 h-7 text-[#D97706] shrink-0" />
                   <div>
                     <h2 className="text-sm font-bold text-[#92400E]">⚠ Superseded by Newer Version</h2>
                     <p className="text-[11px] text-[#B45309]">
@@ -119,7 +128,7 @@ export default function VerifyVoucherPage() {
 
               {result.status === 'revoked' && (
                 <div className="p-5 bg-[#FEF2F2] border-b border-[#FEE2E2] flex items-center gap-3">
-                  <XCircle className="w-7 h-7 text-[#DC2626] flex-shrink-0" />
+                  <XCircle className="w-7 h-7 text-[#DC2626] shrink-0" />
                   <div>
                     <h2 className="text-sm font-bold text-[#991B1B]">✖ Voucher Revoked</h2>
                     <p className="text-[11px] text-[#B91C1C]">
@@ -131,7 +140,7 @@ export default function VerifyVoucherPage() {
 
               {(result.status === 'not_found' || result.status === 'invalid' || result.status === 'error') && (
                 <div className="p-5 bg-[#FEF2F2] border-b border-[#FEE2E2] flex items-center gap-3">
-                  <XCircle className="w-7 h-7 text-[#DC2626] flex-shrink-0" />
+                  <XCircle className="w-7 h-7 text-[#DC2626] shrink-0" />
                   <div>
                     <h2 className="text-sm font-bold text-[#991B1B]">Verification Failed</h2>
                     <p className="text-[11px] text-[#B91C1C]">
@@ -145,14 +154,14 @@ export default function VerifyVoucherPage() {
               {result.voucherNo && (
                 <div className="p-6 space-y-4 text-xs">
                   {/* Payout Hero Box */}
-                  <div className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-center">
-                    <span className="text-[11px] text-[#6B7280] font-medium block">
+                  <div className="p-4 bg-[#F0FDF4] border border-[#BBF7D0] rounded-xl text-center">
+                    <span className="text-[11px] text-[#166534] font-medium block">
                       Disbursed BCA Payable Amount
                     </span>
                     <div className="text-2xl font-extrabold text-[#15803D] tabular-nums mt-0.5">
                       ₹{result.payableAmount?.toLocaleString('en-IN') || 0}
                     </div>
-                    <span className="text-[10px] text-[#6B7280]">
+                    <span className="text-[10px] text-[#166534]">
                       Statement Month: <strong>{result.statementMonth}</strong>
                     </span>
                   </div>
@@ -161,17 +170,17 @@ export default function VerifyVoucherPage() {
                   <div className="grid grid-cols-2 gap-3 pt-2">
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-[#6B7280] block">Voucher No.</span>
-                      <span className="font-mono font-semibold text-[#0A0A0A] text-[11px]">{result.voucherNo}</span>
+                      <span className="font-mono font-bold text-[#0A0A0A] text-[11px]">{result.voucherNo}</span>
                     </div>
 
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-[#6B7280] block">Short Verification Code</span>
-                      <span className="font-mono font-bold text-[#0F2942] tracking-wider text-[11px]">{result.shortCode}</span>
+                      <span className="font-mono font-bold text-[#0A5C36] tracking-wider text-[11px]">{result.shortCode}</span>
                     </div>
 
                     <div className="space-y-0.5">
                       <span className="text-[10px] text-[#6B7280] block">BCA Agent Name</span>
-                      <span className="font-semibold text-[#0A0A0A]">{result.bcaName}</span>
+                      <span className="font-bold text-[#0A0A0A]">{result.bcaName}</span>
                     </div>
 
                     <div className="space-y-0.5">
@@ -196,7 +205,7 @@ export default function VerifyVoucherPage() {
             </div>
           ) : (
             <div className="p-6 text-center space-y-3">
-              <Shield className="w-10 h-10 text-[#0F2942] mx-auto opacity-70" />
+              <Shield className="w-10 h-10 text-[#0A5C36] mx-auto opacity-80" />
               <div>
                 <h3 className="text-sm font-bold text-[#0A0A0A]">Voucher Verification Lookup</h3>
                 <p className="text-xs text-[#6B7280] mt-1">
@@ -215,12 +224,12 @@ export default function VerifyVoucherPage() {
                 onChange={(e) => setManualCode(e.target.value.toUpperCase())}
                 placeholder="Enter 8-digit code (e.g. A3F89C21)"
                 maxLength={10}
-                className="flex-1 px-3 py-1.5 text-xs bg-white border border-[#E5E7EB] rounded-md font-mono uppercase focus:outline-none focus:border-[#0F2942]"
+                className="flex-1 px-3 py-1.5 text-xs bg-white border border-[#E5E7EB] rounded-lg font-mono uppercase focus:outline-none focus:ring-2 focus:ring-[#0A5C36]"
               />
               <button
                 type="submit"
                 disabled={searchingCode || !manualCode.trim()}
-                className="px-3 py-1.5 bg-[#0F2942] text-white text-xs font-semibold rounded-md hover:bg-[#0A1D30] disabled:opacity-50 transition-colors flex items-center gap-1 shadow-sm"
+                className="px-3.5 py-1.5 bg-[#0A5C36] text-white text-xs font-semibold rounded-lg hover:bg-[#084B26] disabled:opacity-50 transition-colors flex items-center gap-1 shadow-xs"
               >
                 {searchingCode ? 'Checking...' : 'Verify'}
                 <ArrowRight className="w-3 h-3" />
@@ -229,15 +238,15 @@ export default function VerifyVoucherPage() {
           </div>
         </div>
 
-        {/* Footer Navigation Link */}
-        <div className="text-center">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-1.5 text-xs text-[#6B7280] hover:text-[#0F2942] transition-colors"
+        {/* Direct Close on Back Button (Zero Navigation Links to Portal) */}
+        <div className="text-center pt-2">
+          <button
+            onClick={handleClose}
+            className="inline-flex items-center gap-1.5 px-4 py-2 bg-white border border-[#E5E7EB] text-xs font-semibold text-[#4B5563] hover:text-[#0A0A0A] hover:bg-[#F3F4F6] rounded-lg transition-colors shadow-xs"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span>Return to Sanjivani Portal</span>
-          </Link>
+            <X className="w-3.5 h-3.5 text-rose-500" />
+            <span>Close Verification</span>
+          </button>
         </div>
       </div>
 

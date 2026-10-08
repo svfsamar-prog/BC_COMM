@@ -9,12 +9,14 @@
     --foreground: #0A0A0A;
     --muted: #6B7280;
     --border: #E5E7EB;
-    --navy: #0F2942;
+    --brand-green: #0A5C36;
+    --brand-dark: #004D25;
+    --brand-gold: #E59819;
   }
 
   body {
     color: #0A0A0A;
-    background-color: #FFFFFF;
+    background-color: #F8FAFC;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
     font-feature-settings: "tnum" on, "cv02" on, "cv03" on, "cv04" on;
     overflow-x: hidden;
@@ -58,4 +60,17 @@
 
 ::-webkit-scrollbar-thumb:hover {
   background: #D1D5DB;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+.animate-marquee {
+  animation: marquee 35s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
 }
