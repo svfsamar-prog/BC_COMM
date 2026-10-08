@@ -3,339 +3,223 @@
 import React, { useState, useMemo } from 'react';
 import { useCommission } from '@/context/CommissionContext';
 import { FilterDropdownsBar } from '@/components/FilterDropdownsBar';
-import {
-  ShieldCheck,
-  Award,
-  Users,
-  Clock,
-  CheckCircle2,
-  FileSpreadsheet,
-  FileText,
-  TrendingUp,
-  Download,
-} from 'lucide-react';
-import { generateAgentCommissionPdf } from '@/lib/exportPdf';
+import { ShieldCheck, ArrowUpDown, ArrowUp, ArrowDown, Award, Users } from 'lucide-react';
+import { CommissionRecord } from '@/types/commission';
 
 export default function SocialSchemesPage() {
-  const { filteredRecords, summaryMetrics, setSelectedAgent } = useCommission();
+  const { filteredRecords, summaryMetrics, setSelectedAgent, selectedPeriod } = useCommission();
 
-  const [sortField, setSortField] = useState<'totalSss' | 'apyCount' | 'sbyCount' | 'jbyCount' | 'loginPercentage'>('totalSss');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortField, setSortField] = useState<keyof CommissionRecord>('incentive10Sss');
+  const [sortAsc, setSortAsc] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 25;
 
-  const sortedList = useMemo(() => {
+  // Sorting
+  const sortedRecords = useMemo(() => {
     const list = [...filteredRecords];
     list.sort((a, b) => {
-      let valA = 0;
-      let valB = 0;
+      let aVal = a[sortField];
+      let bVal = b[sortField];
 
-      if (sortField === 'totalSss') {
-        valA = a.apyCount + a.sbyCount + a.jbyCount;
-        valB = b.apyCount + b.sbyCount + b.jbyCount;
-      } else {
-        valA = a[sortField];
-        valB = b[sortField];
+      if (typeof aVal === 'string') {
+        return sortAsc
+          ? (aVal as string).localeCompare(bVal as string)
+          : (bVal as string).localeCompare(aVal as string);
       }
-
-      return sortOrder === 'asc' ? valA - valB : valB - valA;
+      return sortAsc
+        ? Number(aVal || 0) - Number(bVal || 0)
+        : Number(bVal || 0) - Number(aVal || 0);
     });
     return list;
-  }, [filteredRecords, sortField, sortOrder]);
+  }, [filteredRecords, sortField, sortAsc]);
 
-  const totalPages = Math.ceil(sortedList.length / pageSize) || 1;
-  const paginatedList = sortedList.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+  const totalPages = Math.ceil(sortedRecords.length / pageSize) || 1;
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedRecords = useMemo(() => {
+    const start = (safePage - 1) * pageSize;
+    return sortedRecords.slice(start, start + pageSize);
+  }, [sortedRecords, safePage, pageSize]);
 
-  const handleSort = (field: typeof sortField) => {
+  const toggleSort = (field: keyof CommissionRecord) => {
     if (sortField === field) {
-      setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
+      setSortAsc(!sortAsc);
     } else {
       setSortField(field);
-      setSortOrder('desc');
+      setSortAsc(false);
     }
   };
 
   return (
     <div className="space-y-6">
-      {/* Page Header */}
-      <div className="bg-[#0f2942] text-white p-5 rounded-xl shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-3">
-        <div className="flex items-center space-x-3.5">
-          <div className="p-3 bg-white/10 border border-white/10 text-emerald-400 rounded-lg">
-            <ShieldCheck className="w-6 h-6" />
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
+        <div>
+          <h1 className="text-lg font-bold text-[#0A0A0A]">Social Security Schemes (SSS)</h1>
+          <p className="text-xs text-[#6B7280]">
+            Performance across APY, PMSBY, PMJJBY insurance policies and 10% scheme bonuses
+          </p>
+        </div>
+        <div className="text-xs text-[#6B7280]">
+          Period: <span className="font-semibold text-[#0A0A0A]">{selectedPeriod === 'ALL' ? 'All Months' : selectedPeriod}</span>
+        </div>
+      </div>
+
+      {/* 3 Macro SSS Scheme Tiles */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* 1. APY (Atal Pension Yojana) */}
+        <div className="clean-card p-4 space-y-1">
+          <div className="flex items-center justify-between text-xs text-[#6B7280]">
+            <span className="font-medium">Atal Pension Yojana (APY)</span>
+            <span className="bg-[#F3F4F6] text-[#374151] px-1.5 py-0.2 rounded font-mono text-[10px]">APY</span>
           </div>
-          <div>
-            <h1 className="text-lg font-bold uppercase tracking-wide">
-              Social Security Schemes (SSS) & Attendance Hub
-            </h1>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Government Mandated Financial Inclusion: APY, PM-SBY, PM-JJBY & CASA Account Operations
-            </p>
+          <div className="text-2xl font-bold text-[#0A0A0A] tabular-nums">
+            {summaryMetrics.totalApyCount.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">policies</span>
+          </div>
+          <div className="text-xs text-emerald-700 font-medium tabular-nums pt-0.5">
+            ₹{summaryMetrics.totalApyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })} commission
           </div>
         </div>
 
-        <div className="flex items-center space-x-3 text-xs">
-          <div className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
-            <span className="text-slate-300">Avg Attendance:</span>{' '}
-            <strong className="text-emerald-300 font-bold ml-1">{summaryMetrics.avgLoginPercentage.toFixed(1)}%</strong>
+        {/* 2. PMSBY (Suraksha Bima Yojana) */}
+        <div className="clean-card p-4 space-y-1">
+          <div className="flex items-center justify-between text-xs text-[#6B7280]">
+            <span className="font-medium">Suraksha Bima Yojana (PMSBY)</span>
+            <span className="bg-[#F3F4F6] text-[#374151] px-1.5 py-0.2 rounded font-mono text-[10px]">PMSBY</span>
           </div>
-          <div className="bg-white/10 px-3 py-1.5 rounded-lg border border-white/10">
-            <span className="text-slate-300">Total Policies:</span>{' '}
-            <strong className="text-emerald-300 font-bold ml-1">
-              {(summaryMetrics.totalApyCount + summaryMetrics.totalSbyCount + summaryMetrics.totalJbyCount).toLocaleString('en-IN')}
-            </strong>
+          <div className="text-2xl font-bold text-[#0A0A0A] tabular-nums">
+            {summaryMetrics.totalSbyCount.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">policies</span>
+          </div>
+          <div className="text-xs text-emerald-700 font-medium tabular-nums pt-0.5">
+            ₹{summaryMetrics.totalSbyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })} commission
+          </div>
+        </div>
+
+        {/* 3. PMJJBY (Jeevan Jyoti Bima Yojana) */}
+        <div className="clean-card p-4 space-y-1">
+          <div className="flex items-center justify-between text-xs text-[#6B7280]">
+            <span className="font-medium">Jeevan Jyoti Bima (PMJJBY)</span>
+            <span className="bg-[#F3F4F6] text-[#374151] px-1.5 py-0.2 rounded font-mono text-[10px]">PMJJBY</span>
+          </div>
+          <div className="text-2xl font-bold text-[#0A0A0A] tabular-nums">
+            {summaryMetrics.totalJbyCount.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">policies</span>
+          </div>
+          <div className="text-xs text-emerald-700 font-medium tabular-nums pt-0.5">
+            ₹{summaryMetrics.totalJbyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })} commission
           </div>
         </div>
       </div>
 
-      {/* 5 Macro SSS Cards */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
-        {/* 1. APY */}
-        <div className="svf-card p-4">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase">
-            <span>Atal Pension Yojana</span>
-            <span className="bg-emerald-50 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-200">
-              APY
-            </span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-2 tabular-nums">
-            {summaryMetrics.totalApyCount.toLocaleString('en-IN')}
-          </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between text-xs">
-            <span className="text-slate-500">Commission:</span>
-            <span className="font-bold text-emerald-700 tabular-nums">
-              ₹{summaryMetrics.totalApyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+      {/* 10% Incentive Banner */}
+      {summaryMetrics.totalSssIncentive > 0 && (
+        <div className="clean-card p-3 bg-[#FFFBEB] border-amber-200 flex items-center justify-between text-xs text-[#92400E]">
+          <div className="flex items-center gap-2">
+            <Award className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span>
+              <strong>10% SSS Scheme Bonus:</strong> Special performance incentive of{' '}
+              <strong>₹{summaryMetrics.totalSssIncentive.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</strong> awarded across top performing BCAs.
             </span>
           </div>
         </div>
+      )}
 
-        {/* 2. PM-SBY */}
-        <div className="svf-card p-4">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase">
-            <span>PM Suraksha Bima</span>
-            <span className="bg-sky-50 text-sky-800 px-2 py-0.5 rounded-full border border-sky-200">
-              PMSBY
-            </span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-2 tabular-nums">
-            {summaryMetrics.totalSbyCount.toLocaleString('en-IN')}
-          </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between text-xs">
-            <span className="text-slate-500">Commission:</span>
-            <span className="font-bold text-sky-700 tabular-nums">
-              ₹{summaryMetrics.totalSbyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
+      {/* Filters */}
+      <FilterDropdownsBar />
 
-        {/* 3. PM-JBY */}
-        <div className="svf-card p-4">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase">
-            <span>PM Jeevan Jyoti</span>
-            <span className="bg-indigo-50 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200">
-              PMJJBY
-            </span>
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-2 tabular-nums">
-            {summaryMetrics.totalJbyCount.toLocaleString('en-IN')}
-          </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between text-xs">
-            <span className="text-slate-500">Commission:</span>
-            <span className="font-bold text-indigo-700 tabular-nums">
-              ₹{summaryMetrics.totalJbyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-        </div>
-
-        {/* 4. 10% SSS Bonus */}
-        <div className="svf-card p-4">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase">
-            <span>10% Target Bonus</span>
-            <Award className="w-4 h-4 text-amber-600" />
-          </div>
-          <p className="text-2xl font-black text-amber-800 mt-2 tabular-nums">
-            ₹{summaryMetrics.totalSssIncentive.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </p>
-          <p className="mt-2.5 pt-2 border-t border-slate-100 text-xs text-slate-500">
-            Special Target Milestone
-          </p>
-        </div>
-
-        {/* 5. CASA Account Opening */}
-        <div className="svf-card p-4">
-          <div className="flex items-center justify-between text-[11px] font-bold text-slate-500 uppercase">
-            <span>Accounts Opened</span>
-            <Users className="w-4 h-4 text-slate-500" />
-          </div>
-          <p className="text-2xl font-black text-slate-900 mt-2 tabular-nums">
-            {summaryMetrics.totalAccountsOpened.toLocaleString('en-IN')}
-          </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-100 flex justify-between text-[11px] text-slate-500">
-            <span>Funded: <strong className="text-slate-900 font-bold">{summaryMetrics.totalFundedAccounts}</strong></span>
-            <span>Non-Fund: <strong className="text-slate-900 font-bold">{summaryMetrics.totalNonFundedAccounts}</strong></span>
-          </div>
-        </div>
-      </section>
-
-      {/* Cascading Filter Dropdowns */}
-      <section>
-        <FilterDropdownsBar />
-      </section>
-
-      {/* Dedicated Social Security Performance Register Table */}
-      <section className="svf-card overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-              Social Security Schemes (SSS) Agent Performance Register
-            </h3>
-            <p className="text-xs text-slate-500">
-              Sorted by overall policy productivity across APY, PM-SBY, PM-JJBY, and Login Attendance
-            </p>
-          </div>
-        </div>
-
+      {/* SSS Register Table */}
+      <div className="bg-white border border-[#E5E7EB] rounded-lg overflow-hidden flex flex-col">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="bg-[#0f2942] text-white font-bold border-b border-slate-800 text-[11px] uppercase tracking-wider select-none">
-                <th className="py-3 px-3 w-10 text-center">#</th>
-                <th className="py-3 px-3">Agent ID</th>
-                <th className="py-3 px-3">BCA Name</th>
-                <th className="py-3 px-3">Branch / District</th>
+              <tr className="bg-[#FAFAFA] border-b border-[#E5E7EB] text-[#6B7280] font-medium select-none sticky top-0 z-10">
                 <th
-                  onClick={() => handleSort('loginPercentage')}
-                  className="py-3 px-3 text-center cursor-pointer hover:bg-slate-800 transition"
+                  onClick={() => toggleSort('bcaName')}
+                  className="py-3 px-4 cursor-pointer hover:text-[#0A0A0A]"
                 >
-                  Login % (Days)
+                  Agent
                 </th>
                 <th
-                  onClick={() => handleSort('apyCount')}
-                  className="py-3 px-3 text-right cursor-pointer hover:bg-slate-800 transition"
+                  onClick={() => toggleSort('dist')}
+                  className="py-3 px-4 cursor-pointer hover:text-[#0A0A0A]"
                 >
-                  APY Count (Comm)
+                  District
                 </th>
                 <th
-                  onClick={() => handleSort('sbyCount')}
-                  className="py-3 px-3 text-right cursor-pointer hover:bg-slate-800 transition"
+                  onClick={() => toggleSort('apyCount')}
+                  className="py-3 px-4 text-right cursor-pointer hover:text-[#0A0A0A]"
                 >
-                  PMSBY Count (Comm)
+                  APY
                 </th>
                 <th
-                  onClick={() => handleSort('jbyCount')}
-                  className="py-3 px-3 text-right cursor-pointer hover:bg-slate-800 transition"
+                  onClick={() => toggleSort('sbyCount')}
+                  className="py-3 px-4 text-right cursor-pointer hover:text-[#0A0A0A]"
                 >
-                  PMJJBY Count (Comm)
+                  PMSBY
                 </th>
-                <th className="py-3 px-3 text-right">10% SSS Bonus</th>
                 <th
-                  onClick={() => handleSort('totalSss')}
-                  className="py-3 px-3 text-right cursor-pointer hover:bg-slate-800 text-emerald-300 transition"
+                  onClick={() => toggleSort('jbyCount')}
+                  className="py-3 px-4 text-right cursor-pointer hover:text-[#0A0A0A]"
                 >
-                  Total SSS Policies
+                  PMJJBY
                 </th>
-                <th className="py-3 px-3 text-center">Voucher Action</th>
+                <th
+                  onClick={() => toggleSort('incentive10Sss')}
+                  className="py-3 px-4 text-right cursor-pointer hover:text-[#0A0A0A]"
+                >
+                  10% Bonus
+                </th>
+                <th
+                  onClick={() => toggleSort('bcComm')}
+                  className="py-3 px-4 text-right cursor-pointer hover:text-[#0A0A0A]"
+                >
+                  Total BCA Payout
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
-              {paginatedList.length === 0 ? (
+            <tbody className="divide-y divide-[#E5E7EB] text-[#0A0A0A]">
+              {paginatedRecords.length > 0 ? (
+                paginatedRecords.map((r) => (
+                  <tr
+                    key={r.id}
+                    onClick={() => setSelectedAgent(r)}
+                    className="hover:bg-[#F9FAFB] cursor-pointer transition-colors"
+                  >
+                    <td className="py-3 px-4">
+                      <div className="font-semibold text-[#0A0A0A]">{r.bcaName}</div>
+                      <div className="text-[11px] text-[#6B7280] font-mono">{r.agentId}</div>
+                    </td>
+                    <td className="py-3 px-4 text-[#374151]">{r.dist}</td>
+                    <td className="py-3 px-4 text-right tabular-nums">
+                      <span className="font-medium">{r.apyCount}</span>
+                      <span className="text-[10px] text-[#6B7280] block">₹{r.apyComm.toLocaleString('en-IN')}</span>
+                    </td>
+                    <td className="py-3 px-4 text-right tabular-nums">
+                      <span className="font-medium">{r.sbyCount}</span>
+                      <span className="text-[10px] text-[#6B7280] block">₹{r.sbyComm.toLocaleString('en-IN')}</span>
+                    </td>
+                    <td className="py-3 px-4 text-right tabular-nums">
+                      <span className="font-medium">{r.jbyCount}</span>
+                      <span className="text-[10px] text-[#6B7280] block">₹{r.jbyComm.toLocaleString('en-IN')}</span>
+                    </td>
+                    <td className="py-3 px-4 text-right tabular-nums font-medium text-amber-700">
+                      {r.incentive10Sss > 0 ? `₹${r.incentive10Sss.toLocaleString('en-IN')}` : '—'}
+                    </td>
+                    <td className="py-3 px-4 text-right font-semibold tabular-nums text-[#15803D]">
+                      ₹{r.bcComm.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </td>
+                  </tr>
+                ))
+              ) : (
                 <tr>
-                  <td colSpan={11} className="py-12 text-center text-slate-500 text-xs">
-                    No Business Correspondent records match the current filter selection.
+                  <td colSpan={7} className="py-12 text-center text-[#6B7280]">
+                    <Users className="w-8 h-8 text-[#9CA3AF] mx-auto mb-2 opacity-50" />
+                    <p className="text-sm font-medium text-[#0A0A0A]">No records matching filters</p>
                   </td>
                 </tr>
-              ) : (
-                paginatedList.map((rec, idx) => {
-                  const globalIdx = (currentPage - 1) * pageSize + idx + 1;
-                  const totalSssCount = rec.apyCount + rec.sbyCount + rec.jbyCount;
-
-                  return (
-                    <tr
-                      key={rec.id}
-                      onClick={() => setSelectedAgent(rec)}
-                      className={`cursor-pointer transition hover:bg-emerald-50/60 ${
-                        idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/60'
-                      }`}
-                    >
-                      <td className="py-2.5 px-3 text-slate-400 tabular-nums text-center">{globalIdx}</td>
-                      <td className="py-2.5 px-3 font-bold text-slate-900 tabular-nums">{rec.agentId}</td>
-                      <td className="py-2.5 px-3 font-bold text-slate-900">{rec.bcaName}</td>
-                      <td className="py-2.5 px-3 text-slate-600">
-                        {rec.baseBranch} ({rec.dist})
-                      </td>
-                      <td className="py-2.5 px-3 text-center">
-                        <span
-                          className={`inline-block font-bold text-[10.5px] px-2 py-0.5 rounded-full tabular-nums border ${
-                            rec.loginPercentage >= 80
-                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                              : rec.loginPercentage >= 60
-                              ? 'bg-amber-50 text-amber-800 border-amber-200'
-                              : 'bg-rose-50 text-rose-800 border-rose-200'
-                          }`}
-                        >
-                          {rec.loginPercentage.toFixed(0)}% ({rec.loginDays}d)
-                        </span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums">
-                        <span className="font-bold text-slate-900">{rec.apyCount}</span>
-                        <span className="text-[10px] text-emerald-700 block">₹{rec.apyComm.toFixed(2)}</span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums">
-                        <span className="font-bold text-slate-900">{rec.sbyCount}</span>
-                        <span className="text-[10px] text-sky-700 block">₹{rec.sbyComm.toFixed(2)}</span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums">
-                        <span className="font-bold text-slate-900">{rec.jbyCount}</span>
-                        <span className="text-[10px] text-indigo-700 block">₹{rec.jbyComm.toFixed(2)}</span>
-                      </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums font-semibold text-amber-800">
-                        ₹{rec.incentive10Sss.toFixed(2)}
-                      </td>
-                      <td className="py-2.5 px-3 text-right tabular-nums font-black text-emerald-900 bg-emerald-50/50">
-                        {totalSssCount} Policies
-                      </td>
-                      <td
-                        className="py-2.5 px-3 text-center"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={() => generateAgentCommissionPdf(rec)}
-                          className="px-2.5 py-1 text-[11px] font-bold text-white bg-[#0f2942] hover:bg-slate-800 rounded transition"
-                          title="Download Commission Slip"
-                        >
-                          Download Slip
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })
               )}
             </tbody>
           </table>
         </div>
-
-        {/* Pagination */}
-        <div className="p-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
-          <div>
-            Page <strong className="text-slate-900">{currentPage}</strong> of <strong className="text-slate-900">{totalPages}</strong>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
-              disabled={currentPage === 1}
-              className="px-3.5 py-1 bg-white border border-slate-300 rounded font-semibold disabled:opacity-40 hover:bg-slate-50 transition"
-            >
-              Prev
-            </button>
-            <button
-              onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
-              disabled={currentPage === totalPages}
-              className="px-3.5 py-1 bg-white border border-slate-300 rounded font-semibold disabled:opacity-40 hover:bg-slate-50 transition"
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </section>
+      </div>
     </div>
   );
 }

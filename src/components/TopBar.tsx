@@ -1,0 +1,182 @@
+'use client';
+
+import React, { useState, useRef, useEffect } from 'react';
+import { useCommission } from '@/context/CommissionContext';
+import { Upload, Download, Calendar, ChevronDown, Check, FileSpreadsheet, FileText, Undo2, X } from 'lucide-react';
+
+export const TopBar: React.FC = () => {
+  const {
+    availableMonths,
+    selectedPeriod,
+    setSelectedPeriod,
+    setIsUploadModalOpen,
+    filteredRecords,
+    exportCurrentExcel,
+    exportCurrentPdf,
+    toast,
+    dismissToast,
+  } = useCommission();
+
+  const [isPeriodOpen, setIsPeriodOpen] = useState(false);
+  const [isExportOpen, setIsExportOpen] = useState(false);
+
+  const periodRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
+
+  // Close popovers on click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (periodRef.current && !periodRef.current.contains(e.target as Node)) {
+        setIsPeriodOpen(false);
+      }
+      if (exportRef.current && !exportRef.current.contains(e.target as Node)) {
+        setIsExportOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  return (
+    <>
+      <header className="sticky top-0 z-30 h-14 bg-white border-b border-[#E5E7EB] px-4 md:px-8 flex items-center justify-between">
+        {/* Left: Section Label / Live Indicator */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-[#0A0A0A]">
+            Sanjivani Commission Portal
+          </span>
+          <span className="hidden sm:inline-block text-[11px] text-[#6B7280] bg-[#F3F4F6] px-2 py-0.5 rounded">
+            Admin
+          </span>
+        </div>
+
+        {/* Right: Global Actions (Period, Upload, Export) */}
+        <div className="flex items-center gap-2.5">
+          {/* Period Selector Dropdown */}
+          <div className="relative" ref={periodRef}>
+            <button
+              onClick={() => setIsPeriodOpen(!isPeriodOpen)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-[#374151] bg-[#FAFAFA] hover:bg-[#F3F4F6] border border-[#E5E7EB] rounded-md transition-fast"
+            >
+              <Calendar className="w-3.5 h-3.5 text-[#6B7280]" />
+              <span>Period:</span>
+              <span className="font-semibold text-[#0A0A0A]">{selectedPeriod === 'ALL' ? 'All Months' : selectedPeriod}</span>
+              <ChevronDown className="w-3 h-3 text-[#6B7280]" />
+            </button>
+
+            {isPeriodOpen && (
+              <div className="absolute right-0 mt-1 w-44 bg-white border border-[#E5E7EB] rounded-md shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-1 text-[11px] font-semibold text-[#6B7280] border-b border-[#F3F4F6]">
+                  Select Statement Period
+                </div>
+                {availableMonths.map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => {
+                      setSelectedPeriod(m);
+                      setIsPeriodOpen(false);
+                    }}
+                    className="w-full text-left px-3 py-1.5 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center justify-between transition-colors"
+                  >
+                    <span>{m}</span>
+                    {selectedPeriod === m && <Check className="w-3.5 h-3.5 text-[#0F2942]" />}
+                  </button>
+                ))}
+                <button
+                  onClick={() => {
+                    setSelectedPeriod('ALL');
+                    setIsPeriodOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-1.5 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center justify-between border-t border-[#F3F4F6] transition-colors"
+                >
+                  <span>All Periods Combined</span>
+                  {selectedPeriod === 'ALL' && <Check className="w-3.5 h-3.5 text-[#0F2942]" />}
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Upload Button */}
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#0F2942] hover:bg-[#0A1D30] rounded-md transition-fast shadow-sm"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Upload</span>
+          </button>
+
+          {/* Export Dropdown */}
+          <div className="relative" ref={exportRef}>
+            <button
+              onClick={() => setIsExportOpen(!isExportOpen)}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0F2942] bg-white hover:bg-[#FAFAFA] border border-[#0F2942] rounded-md transition-fast shadow-sm"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Export</span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+
+            {isExportOpen && (
+              <div className="absolute right-0 mt-1 w-56 bg-white border border-[#E5E7EB] rounded-md shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div className="px-3 py-1.5 text-[11px] text-[#6B7280] border-b border-[#F3F4F6]">
+                  Exports {filteredRecords.length.toLocaleString()} filtered BCAs
+                </div>
+                <button
+                  onClick={() => {
+                    exportCurrentExcel();
+                    setIsExportOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                  <div>
+                    <div className="font-medium">Excel (full 33 columns)</div>
+                    <div className="text-[10px] text-[#6B7280]">Complete financial matrix with totals</div>
+                  </div>
+                </button>
+                <button
+                  onClick={() => {
+                    exportCurrentPdf();
+                    setIsExportOpen(false);
+                  }}
+                  className="w-full text-left px-3 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors border-t border-[#F3F4F6]"
+                >
+                  <FileText className="w-4 h-4 text-rose-600" />
+                  <div>
+                    <div className="font-medium">PDF summary</div>
+                    <div className="text-[10px] text-[#6B7280]">Printable disbursement summary</div>
+                  </div>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </header>
+
+      {/* Floating Toast Notification with Undo */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#0F2942] text-white px-4 py-3 rounded-lg shadow-xl flex items-center gap-3 text-xs animate-in slide-in-from-bottom-3 duration-150 border border-slate-700">
+          <span className="font-medium">{toast.message}</span>
+          {toast.onUndo && (
+            <button
+              onClick={() => {
+                toast.onUndo?.();
+                dismissToast();
+              }}
+              className="flex items-center gap-1 bg-white/10 hover:bg-white/20 text-white font-semibold px-2 py-1 rounded transition-colors"
+            >
+              <Undo2 className="w-3 h-3" />
+              <span>Undo</span>
+            </button>
+          )}
+          <button
+            onClick={dismissToast}
+            className="text-slate-400 hover:text-white transition-colors ml-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
+    </>
+  );
+};

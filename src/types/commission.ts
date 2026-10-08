@@ -70,7 +70,7 @@ export interface FilterState {
   baseBranch: string;
   monthFrom: string;
   monthTo: string;
-  activityFilter: 'all' | 'high' | 'medium' | 'low'; // >=90%, 70-89%, <70%
+  activityFilter: 'all' | 'high' | 'medium' | 'low' | 'attention'; // >=90%, 70-89%, <70%, <15 days
 }
 
 export interface SummaryMetrics {

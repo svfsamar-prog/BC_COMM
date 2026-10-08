@@ -1,10 +1,16 @@
 'use client';
 
-import React, { createContext, useContext, useState, useMemo } from 'react';
+import React, { createContext, useContext, useState, useMemo, useEffect } from 'react';
 import { CommissionRecord, FilterState, SummaryMetrics } from '@/types/commission';
 import { INITIAL_COMMISSION_RECORDS } from '@/lib/preloadedData';
 import { exportFilteredCommissionExcel } from '@/lib/exportExcel';
 import { generateSummaryReportPdf } from '@/lib/exportPdf';
+
+export interface ToastNotification {
+  id: number;
+  message: string;
+  onUndo?: () => void;
+}
 
 interface CommissionContextType {
   records: CommissionRecord[];
@@ -19,25 +25,54 @@ interface CommissionContextType {
   availableDistricts: string[];
   availableBranches: string[];
   availableMonths: string[];
+  selectedPeriod: string;
+  setSelectedPeriod: (period: string) => void;
   selectedAgent: CommissionRecord | null;
   setSelectedAgent: (agent: CommissionRecord | null) => void;
   isUploadModalOpen: boolean;
   setIsUploadModalOpen: (open: boolean) => void;
-  isSidebarOpen: boolean;
-  setIsSidebarOpen: (open: boolean) => void;
-  handleImportData: (newRecords: CommissionRecord[], mode: 'replace' | 'append') => void;
+  handleImportData: (newRecords: CommissionRecord[]) => void;
+  toast: ToastNotification | null;
+  dismissToast: () => void;
   exportCurrentExcel: () => void;
   exportCurrentPdf: () => void;
   statementMonthLabel: string;
+  activeTab: 'overview' | 'register' | 'schemes';
+  setActiveTab: (tab: 'overview' | 'register' | 'schemes') => void;
+  filterByDistrict: (district: string) => void;
+  filterByNeedsAttention: () => void;
 }
 
 const CommissionContext = createContext<CommissionContextType | undefined>(undefined);
 
 export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [records, setRecords] = useState<CommissionRecord[]>(INITIAL_COMMISSION_RECORDS);
+  const [previousSnapshot, setPreviousSnapshot] = useState<CommissionRecord[] | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<CommissionRecord | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [toast, setToast] = useState<ToastNotification | null>(null);
+  const [activeTab, setActiveTab] = useState<'overview' | 'register' | 'schemes'>('overview');
+
+  // Available Months detected from dataset
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    records.forEach((r) => {
+      if (r.statementMonth) set.add(r.statementMonth);
+    });
+    return Array.from(set).sort();
+  }, [records]);
+
+  // Selected single period
+  const [selectedPeriod, setSelectedPeriodState] = useState<string>(() => {
+    return availableMonths[0] || 'AUGUST 2026';
+  });
+
+  // Keep selectedPeriod valid when dataset changes
+  useEffect(() => {
+    if (availableMonths.length > 0 && !availableMonths.includes(selectedPeriod) && selectedPeriod !== 'ALL') {
+      setSelectedPeriodState(availableMonths[availableMonths.length - 1] || 'AUGUST 2026');
+    }
+  }, [availableMonths, selectedPeriod]);
 
   const [filters, setFilters] = useState<FilterState>({
     searchQuery: '',
@@ -50,41 +85,60 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     activityFilter: 'all',
   });
 
-  // Calculate available dropdowns dynamically
-  const availableMonths = useMemo(() => {
-    return Array.from(new Set(records.map((r) => r.statementMonth).filter(Boolean))).sort();
-  }, [records]);
+  const setSelectedPeriod = (period: string) => {
+    setSelectedPeriodState(period);
+    if (period === 'ALL') {
+      setFilters((prev) => ({ ...prev, monthFrom: '', monthTo: '' }));
+    } else {
+      setFilters((prev) => ({ ...prev, monthFrom: period, monthTo: period }));
+    }
+  };
 
+  // Sync initial period filter
+  useEffect(() => {
+    if (selectedPeriod && selectedPeriod !== 'ALL') {
+      setFilters((prev) => ({ ...prev, monthFrom: selectedPeriod, monthTo: selectedPeriod }));
+    }
+  }, [selectedPeriod]);
+
+  // Dynamic cascading dropdowns
   const availableStates = useMemo(() => {
     let list = records;
-    if (filters.monthFrom && filters.monthTo) {
-      list = list.filter((r) => r.statementMonth >= filters.monthFrom && r.statementMonth <= filters.monthTo);
-    } else if (filters.monthFrom) {
-      list = list.filter((r) => r.statementMonth === filters.monthFrom);
+    if (selectedPeriod !== 'ALL' && selectedPeriod) {
+      list = list.filter((r) => r.statementMonth === selectedPeriod);
     }
     return Array.from(new Set(list.map((r) => r.stateName).filter(Boolean))).sort();
-  }, [records, filters.monthFrom, filters.monthTo]);
+  }, [records, selectedPeriod]);
 
   const availableZones = useMemo(() => {
     let list = records;
+    if (selectedPeriod !== 'ALL' && selectedPeriod) {
+      list = list.filter((r) => r.statementMonth === selectedPeriod);
+    }
     if (filters.state) list = list.filter((r) => r.stateName === filters.state);
     return Array.from(new Set(list.map((r) => r.zoneName).filter(Boolean))).sort();
-  }, [records, filters.state]);
+  }, [records, selectedPeriod, filters.state]);
 
   const availableDistricts = useMemo(() => {
     let list = records;
+    if (selectedPeriod !== 'ALL' && selectedPeriod) {
+      list = list.filter((r) => r.statementMonth === selectedPeriod);
+    }
     if (filters.state) list = list.filter((r) => r.stateName === filters.state);
     if (filters.zone) list = list.filter((r) => r.zoneName === filters.zone);
     return Array.from(new Set(list.map((r) => r.dist).filter(Boolean))).sort();
-  }, [records, filters.state, filters.zone]);
+  }, [records, selectedPeriod, filters.state, filters.zone]);
 
   const availableBranches = useMemo(() => {
     let list = records;
+    if (selectedPeriod !== 'ALL' && selectedPeriod) {
+      list = list.filter((r) => r.statementMonth === selectedPeriod);
+    }
     if (filters.state) list = list.filter((r) => r.stateName === filters.state);
     if (filters.zone) list = list.filter((r) => r.zoneName === filters.zone);
     if (filters.dist) list = list.filter((r) => r.dist === filters.dist);
     return Array.from(new Set(list.map((r) => r.baseBranch).filter(Boolean))).sort();
-  }, [records, filters.state, filters.zone, filters.dist]);
+  }, [records, selectedPeriod, filters.state, filters.zone, filters.dist]);
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
     setFilters((prev) => ({ ...prev, ...newFilters }));
@@ -97,38 +151,62 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       zone: '',
       dist: '',
       baseBranch: '',
-      monthFrom: '',
-      monthTo: '',
+      monthFrom: selectedPeriod !== 'ALL' ? selectedPeriod : '',
+      monthTo: selectedPeriod !== 'ALL' ? selectedPeriod : '',
       activityFilter: 'all',
     });
   };
 
-  const handleImportData = (newRecords: CommissionRecord[], mode: 'replace' | 'append') => {
-    if (mode === 'replace') {
-      setRecords(newRecords);
-    } else {
-      // Append while deduplicating by record ID
-      setRecords((prev) => {
-        const map = new Map<string, CommissionRecord>();
-        prev.forEach((r) => map.set(r.id, r));
-        newRecords.forEach((r) => map.set(r.id, r));
-        return Array.from(map.values());
-      });
+  // 1-step intelligent Import (auto-replace existing month, add new month) + Undo
+  const handleImportData = (newRecords: CommissionRecord[]) => {
+    if (!newRecords || newRecords.length === 0) return;
+
+    // Snapshot for Undo
+    const prevData = [...records];
+    setPreviousSnapshot(prevData);
+
+    const importedMonths = Array.from(new Set(newRecords.map((r) => r.statementMonth).filter(Boolean)));
+    const targetMonthStr = importedMonths.join(', ') || 'Current Statement';
+
+    // Replace matching month records, keep all others
+    const remainingRecords = prevData.filter((r) => !importedMonths.includes(r.statementMonth));
+    const mergedRecords = [...remainingRecords, ...newRecords];
+
+    setRecords(mergedRecords);
+    if (importedMonths.length > 0) {
+      setSelectedPeriod(importedMonths[0]);
     }
     handleResetFilters();
+
+    // Show toast with Undo action
+    setToast({
+      id: Date.now(),
+      message: `${newRecords.length} BCAs imported for ${targetMonthStr}`,
+      onUndo: () => {
+        setRecords(prevData);
+        setToast({
+          id: Date.now(),
+          message: `Import undone. Restored previous dataset.`,
+        });
+      },
+    });
+  };
+
+  const dismissToast = () => {
+    setToast(null);
   };
 
   // Filtered dataset
   const filteredRecords = useMemo(() => {
     return records.filter((r) => {
-      // 1. Month Date Range Filter
-      if (filters.monthFrom && filters.monthTo) {
+      // 1. Month Filter
+      if (selectedPeriod !== 'ALL' && selectedPeriod) {
+        if (r.statementMonth !== selectedPeriod) return false;
+      } else if (filters.monthFrom && filters.monthTo) {
         if (r.statementMonth < filters.monthFrom || r.statementMonth > filters.monthTo) return false;
-      } else if (filters.monthFrom) {
-        if (r.statementMonth !== filters.monthFrom) return false;
       }
 
-      // 2. Universal Search
+      // 2. Search Query
       if (filters.searchQuery) {
         const q = filters.searchQuery.toLowerCase().trim();
         const matches =
@@ -143,28 +221,29 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (!matches) return false;
       }
 
-      // 3. State Filter
+      // 3. State
       if (filters.state && r.stateName !== filters.state) return false;
 
-      // 4. Zone Filter
+      // 4. Zone
       if (filters.zone && r.zoneName !== filters.zone) return false;
 
-      // 5. District Filter
+      // 5. District
       if (filters.dist && r.dist !== filters.dist) return false;
 
-      // 6. Base Branch Filter
+      // 6. Base Branch
       if (filters.baseBranch && r.baseBranch !== filters.baseBranch) return false;
 
-      // 7. Activity / Attendance Filter
+      // 7. Activity Filter
       if (filters.activityFilter === 'high' && r.loginPercentage < 90) return false;
       if (filters.activityFilter === 'medium' && (r.loginPercentage < 70 || r.loginPercentage >= 90)) return false;
       if (filters.activityFilter === 'low' && r.loginPercentage >= 70) return false;
+      if (filters.activityFilter === 'attention' && r.loginDays >= 15) return false;
 
       return true;
     });
-  }, [records, filters]);
+  }, [records, selectedPeriod, filters]);
 
-  // Aggregate Key Summary Metrics
+  // Summary Metrics calculation (Strictly preserved mathematical integrity)
   const summaryMetrics: SummaryMetrics = useMemo(() => {
     let totalAccounts = 0;
     let totalFunded = 0;
@@ -231,18 +310,40 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
   }, [filteredRecords]);
 
-  // Export handlers
+  // Clickable bar on overview chart filters Register by district
+  const filterByDistrict = (district: string) => {
+    handleResetFilters();
+    setFilters((prev) => ({ ...prev, dist: district }));
+    setActiveTab('register');
+  };
+
+  // "Needs attention" list item clicks to register
+  const filterByNeedsAttention = () => {
+    handleResetFilters();
+    setFilters((prev) => ({ ...prev, activityFilter: 'attention' }));
+    setActiveTab('register');
+  };
+
+  // Exports
   const exportCurrentExcel = () => {
-    const title = filters.dist || filters.zone || filters.state || 'All_Districts';
+    const title = filters.dist || filters.state || selectedPeriod || 'Filtered_BCAs';
     exportFilteredCommissionExcel(filteredRecords, `Sanjivani_Commission_${title}.xlsx`);
+    setToast({
+      id: Date.now(),
+      message: `Exported ${filteredRecords.length} BCAs to Excel (33 Columns)`,
+    });
   };
 
   const exportCurrentPdf = () => {
-    const title = filters.dist || filters.zone || filters.state || 'All Districts';
+    const title = filters.dist || filters.state || selectedPeriod || 'Commission Summary';
     generateSummaryReportPdf(filteredRecords, title);
+    setToast({
+      id: Date.now(),
+      message: `Exported summary PDF for ${filteredRecords.length} BCAs`,
+    });
   };
 
-  const statementMonthLabel = availableMonths.length > 1 ? `${availableMonths[0]} – ${availableMonths[availableMonths.length - 1]}` : (availableMonths[0] || 'AUGUST 2026');
+  const statementMonthLabel = selectedPeriod === 'ALL' ? 'All Statements' : (selectedPeriod || 'August 2026');
 
   return (
     <CommissionContext.Provider
@@ -259,16 +360,22 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         availableDistricts,
         availableBranches,
         availableMonths,
+        selectedPeriod,
+        setSelectedPeriod,
         selectedAgent,
         setSelectedAgent,
         isUploadModalOpen,
         setIsUploadModalOpen,
-        isSidebarOpen,
-        setIsSidebarOpen,
         handleImportData,
+        toast,
+        dismissToast,
         exportCurrentExcel,
         exportCurrentPdf,
         statementMonthLabel,
+        activeTab,
+        setActiveTab,
+        filterByDistrict,
+        filterByNeedsAttention,
       }}
     >
       {children}
