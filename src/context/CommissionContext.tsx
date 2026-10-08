@@ -31,7 +31,7 @@ interface CommissionContextType {
   setSelectedAgent: (agent: CommissionRecord | null) => void;
   isUploadModalOpen: boolean;
   setIsUploadModalOpen: (open: boolean) => void;
-  handleImportData: (newRecords: CommissionRecord[]) => void;
+  handleImportData: (newRecords: CommissionRecord[]) => Promise<void>;
   toast: ToastNotification | null;
   dismissToast: () => void;
   exportCurrentExcel: () => void;
@@ -41,6 +41,7 @@ interface CommissionContextType {
   setActiveTab: (tab: 'overview' | 'register' | 'schemes') => void;
   filterByDistrict: (district: string) => void;
   filterByNeedsAttention: () => void;
+  isLoadingDb: boolean;
 }
 
 const CommissionContext = createContext<CommissionContextType | undefined>(undefined);
@@ -52,6 +53,28 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
   const [activeTab, setActiveTab] = useState<'overview' | 'register' | 'schemes'>('overview');
+  const [isLoadingDb, setIsLoadingDb] = useState(false);
+
+  // Fetch persisted statements from database on mount
+  useEffect(() => {
+    async function loadPersistedRecords() {
+      setIsLoadingDb(true);
+      try {
+        const res = await fetch('/api/records');
+        if (res.ok) {
+          const json = await res.json();
+          if (json.records && json.records.length > 0) {
+            setRecords(json.records);
+          }
+        }
+      } catch (e) {
+        console.warn('Database load fallback to initial dataset:', e);
+      } finally {
+        setIsLoadingDb(false);
+      }
+    }
+    loadPersistedRecords();
+  }, []);
 
   // Available Months detected from dataset
   const availableMonths = useMemo(() => {
@@ -157,8 +180,8 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
   };
 
-  // 1-step intelligent Import (auto-replace existing month, add new month) + Undo
-  const handleImportData = (newRecords: CommissionRecord[]) => {
+  // 1-step intelligent Import (auto-replace existing month, add new month) + Database Persistence + Undo
+  const handleImportData = async (newRecords: CommissionRecord[]) => {
     if (!newRecords || newRecords.length === 0) return;
 
     // Snapshot for Undo
@@ -168,7 +191,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const importedMonths = Array.from(new Set(newRecords.map((r) => r.statementMonth).filter(Boolean)));
     const targetMonthStr = importedMonths.join(', ') || 'Current Statement';
 
-    // Replace matching month records, keep all others
+    // Replace matching month records, keep all others in memory
     const remainingRecords = prevData.filter((r) => !importedMonths.includes(r.statementMonth));
     const mergedRecords = [...remainingRecords, ...newRecords];
 
@@ -178,18 +201,45 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }
     handleResetFilters();
 
-    // Show toast with Undo action
+    // Show initial UI toast
     setToast({
       id: Date.now(),
-      message: `${newRecords.length} BCAs imported for ${targetMonthStr}`,
-      onUndo: () => {
+      message: `${newRecords.length} BCAs imported for ${targetMonthStr}. Saving to database...`,
+      onUndo: async () => {
         setRecords(prevData);
+        // Persist rollback to database
+        try {
+          await fetch('/api/records', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ records: prevData }),
+          });
+        } catch (e) {
+          console.error('Undo persist error:', e);
+        }
         setToast({
           id: Date.now(),
-          message: `Import undone. Restored previous dataset.`,
+          message: `Import undone. Restored previous dataset in database.`,
         });
       },
     });
+
+    // Save asynchronously to Supabase Database
+    try {
+      const res = await fetch('/api/records', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ records: newRecords }),
+      });
+      if (res.ok) {
+        setToast({
+          id: Date.now(),
+          message: `${newRecords.length} BCAs saved to database for ${targetMonthStr}.`,
+        });
+      }
+    } catch (e) {
+      console.error('Failed to persist to database:', e);
+    }
   };
 
   const dismissToast = () => {
@@ -376,6 +426,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         setActiveTab,
         filterByDistrict,
         filterByNeedsAttention,
+        isLoadingDb,
       }}
     >
       {children}
