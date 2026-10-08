@@ -5,26 +5,21 @@ import { useCommission } from '@/context/CommissionContext';
 import { FilterDropdownsBar } from '@/components/FilterDropdownsBar';
 import { AgentDataTable } from '@/components/AgentDataTable';
 import {
-  Briefcase,
-  Archive,
-  Calendar,
-  Handshake,
-  ClipboardCheck,
-  Package,
-  TrendingUp,
+  Users,
+  Receipt,
+  QrCode,
+  FileSpreadsheet,
+  ShieldCheck,
+  UploadCloud,
+  CalendarCheck,
   FileText,
-  MessageSquare,
-  Shield,
-  FileCheck2,
-  Ticket,
   AlertCircle,
   ArrowRight,
-  ChevronRight,
   Pause,
   Play,
   X,
-  Sparkles,
-  Search,
+  TrendingUp,
+  Download,
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -38,6 +33,11 @@ export default function HomePage() {
     filterByDistrict,
     filterByNeedsAttention,
     setSelectedAgent,
+    setIsUploadModalOpen,
+    exportCurrentPdf,
+    exportPayoutListPdf,
+    exportBulkVouchersPdf,
+    exportCurrentExcel,
   } = useCommission();
 
   const [isTickerPaused, setIsTickerPaused] = useState(false);
@@ -91,104 +91,54 @@ export default function HomePage() {
     return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   };
 
-  // 12 Action Modules from Screenshot media_1791460148545.png
-  const actionModules = [
+  // Commission Action Modules with Screenshot Design Language
+  const commissionModules = [
     {
-      id: 'visit_dashboard',
-      title: 'VISIT DASHBOARD',
+      id: 'register',
+      title: 'COMMISSION MASTER REGISTER',
       accentColor: 'border-l-4 border-l-[#15803D]',
       textColor: 'text-[#15803D]',
-      icon: Briefcase,
-      btnLabel: 'Proceed',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('overview'),
-    },
-    {
-      id: 'visit_register',
-      title: 'VISIT REGISTER (BY ID)',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: Archive,
-      btnLabel: 'Proceed',
+      icon: Users,
+      btnLabel: 'View Register',
       btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
       action: () => setActiveTab('register'),
     },
     {
-      id: 'visit_scheduler',
-      title: 'VISIT SCHEDULER',
+      id: 'payout_list',
+      title: 'BCA DISBURSEMENT PAYOUT LIST',
       accentColor: 'border-l-4 border-l-[#15803D]',
       textColor: 'text-[#15803D]',
-      icon: Briefcase,
-      btnLabel: 'Proceed',
+      icon: Receipt,
+      btnLabel: 'Export PDF',
       btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('overview'),
+      action: () => exportPayoutListPdf(),
     },
     {
-      id: 'online_meeting',
-      title: 'ONLINE MEETING DATA INPUT',
+      id: 'vouchers',
+      title: 'ALL VOUCHERS (QR VERIFIED)',
+      accentColor: 'border-l-4 border-l-[#15803D]',
+      textColor: 'text-[#15803D]',
+      icon: QrCode,
+      btnLabel: 'Generate All',
+      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
+      action: () => exportBulkVouchersPdf(),
+    },
+    {
+      id: 'excel_export',
+      title: 'STATEMENT EXCEL (33 COLUMNS)',
       accentColor: 'border-l-4 border-l-[#3B82F6]',
       textColor: 'text-[#2563EB]',
-      icon: Handshake,
-      btnLabel: 'Proceed',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('register'),
+      icon: FileSpreadsheet,
+      btnLabel: 'Download Excel',
+      btnBg: 'bg-[#4338CA] hover:bg-[#3730A3] text-white',
+      action: () => exportCurrentExcel(),
     },
     {
-      id: 'device_approval',
-      title: 'DEVICE APPROVAL',
+      id: 'schemes',
+      title: 'SOCIAL SECURITY SCHEMES (SSS)',
       accentColor: 'border-l-4 border-l-[#3B82F6]',
       textColor: 'text-[#2563EB]',
-      icon: ClipboardCheck,
-      btnLabel: 'Proceed',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('register'),
-    },
-    {
-      id: 'current_day_login',
-      title: 'CURRENT DAY LOGIN AND SSS REPORT',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: Package,
-      btnLabel: 'Proceed',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('overview'),
-    },
-    {
-      id: 'performance_dashboard',
-      title: 'PERFORMANCE DASHBOARD',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: Briefcase,
-      btnLabel: 'Proceed',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('overview'),
-    },
-    {
-      id: 'commission_details',
-      title: 'COMMISSION DETAILS',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: Briefcase,
-      btnLabel: 'View',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('register'),
-    },
-    {
-      id: 'csp_feedback',
-      title: 'CSP FEEDBACK REPORT',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: Archive,
-      btnLabel: 'Proceed',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('register'),
-    },
-    {
-      id: 'insurance',
-      title: 'INSURANCE',
-      accentColor: 'border-l-4 border-l-[#3B82F6]',
-      textColor: 'text-[#2563EB]',
-      icon: Shield,
+      icon: ShieldCheck,
       btnLabel: 'Open Portal',
       btnBg: 'bg-[#4338CA] hover:bg-[#3730A3] text-white',
       action: () => {
@@ -196,30 +146,40 @@ export default function HomePage() {
       },
     },
     {
-      id: 'agreement_report',
-      title: 'AGREEMENT REPORT',
+      id: 'upload_statement',
+      title: 'MONTHLY STATEMENT IMPORT',
       accentColor: 'border-l-4 border-l-[#15803D]',
       textColor: 'text-[#15803D]',
-      icon: FileCheck2,
-      btnLabel: 'Open Report',
-      btnBg: 'bg-[#15803D] hover:bg-[#166534] text-white',
-      action: () => setActiveTab('register'),
+      icon: UploadCloud,
+      btnLabel: 'Upload File',
+      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
+      action: () => setIsUploadModalOpen(true),
     },
     {
-      id: 'ticket_desk',
-      title: 'TICKET DESK',
-      accentColor: 'border-l-4 border-l-[#3B82F6]',
-      textColor: 'text-[#2563EB]',
-      icon: Ticket,
-      btnLabel: 'Open Portal',
-      btnBg: 'bg-[#4338CA] hover:bg-[#3730A3] text-white',
-      action: () => setActiveTab('overview'),
+      id: 'attendance',
+      title: 'ATTENDANCE & LOGIN TARGETS',
+      accentColor: 'border-l-4 border-l-[#15803D]',
+      textColor: 'text-[#15803D]',
+      icon: CalendarCheck,
+      btnLabel: 'Review List',
+      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
+      action: () => filterByNeedsAttention(),
+    },
+    {
+      id: 'summary_report',
+      title: 'REGIONAL SUMMARY REPORT',
+      accentColor: 'border-l-4 border-l-[#15803D]',
+      textColor: 'text-[#15803D]',
+      icon: FileText,
+      btnLabel: 'Generate PDF',
+      btnBg: 'bg-[#15803D] hover:bg-[#166534] text-white',
+      action: () => exportCurrentPdf(),
     },
   ];
 
   return (
     <div className="space-y-5">
-      {/* 1. Ticker / Notice Banner (Matching Screenshot media_1791460148545.png) */}
+      {/* 1. Ticker / Notice Banner (Matching Screenshot Design) */}
       {showNotice && (
         <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-lg shadow-xs overflow-hidden flex items-center justify-between px-3 py-1.5 text-xs text-[#92400E]">
           <div className="flex items-center gap-3 overflow-hidden flex-1 mr-4">
@@ -231,7 +191,7 @@ export default function HomePage() {
             {/* Marquee Notice Content */}
             <div className="overflow-hidden whitespace-nowrap flex-1">
               <div className={`inline-block font-medium ${isTickerPaused ? '' : 'animate-marquee'}`}>
-                Ensure to follow the working hours from 8 AM to 8 PM • Keep the working place clean with proper sitting arrangements for the customer • All Business Correspondents must reconcile statement accounts by 10th of every month • APY, PMSBY, PMJJBY social security schemes must be strictly enrolled as per RBI & DFS mandate.
+                Ensure to follow the working hours from 8 AM to 8 PM • Keep the working place clean with proper sitting arrangements for the customer • All Business Correspondents must complete monthly statement reconciliation by 10th of every month • APY, PMSBY, PMJJBY social security schemes must be strictly enrolled as per RBI & DFS guidelines.
               </div>
             </div>
           </div>
@@ -256,9 +216,9 @@ export default function HomePage() {
         </div>
       )}
 
-      {/* 2. Action Module Cards Grid (4 columns across as in Screenshot) */}
+      {/* 2. Commission Action Module Cards (Clean card styling matching screenshot) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {actionModules.map((mod) => {
+        {commissionModules.map((mod) => {
           const Icon = mod.icon;
           return (
             <div
@@ -325,19 +285,19 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 1. Gross Commission */}
             <div className="clean-card p-5 space-y-1 bg-white border border-[#E5E7EB] border-t-3 border-t-[#0A5C36]">
-              <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Gross Commission</span>
+              <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Gross Reconciled Commission</span>
               <div className="text-3xl font-extrabold text-[#0A0A0A] tabular-nums tracking-tight">
                 {formatCompactInr(summaryMetrics.totalNetCommission)}
               </div>
               <div className="flex items-center justify-between text-xs text-[#6B7280] pt-1">
                 <span>Exact: ₹{summaryMetrics.totalNetCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">Reconciled</span>
+                <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">100% Reconciled</span>
               </div>
             </div>
 
             {/* 2. BCA Payout (80%) */}
             <div className="clean-card p-5 space-y-1 bg-[#F0FDF4] border border-[#BBF7D0] border-t-3 border-t-[#15803D]">
-              <span className="text-xs font-semibold text-[#166534] uppercase tracking-wider">BCA Payout (80% Share)</span>
+              <span className="text-xs font-semibold text-[#166534] uppercase tracking-wider">BCA Disbursement (80% Share)</span>
               <div className="text-3xl font-extrabold text-[#15803D] tabular-nums tracking-tight">
                 {formatCompactInr(summaryMetrics.totalBcCommission)}
               </div>
@@ -366,8 +326,8 @@ export default function HomePage() {
             <div className="lg:col-span-2 clean-card p-5 space-y-4 bg-white border border-[#E5E7EB]">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="text-sm font-bold text-[#0A0A0A]">Commission by District</h3>
-                  <p className="text-xs text-[#6B7280]">Click any district bar to inspect filtered agent register</p>
+                  <h3 className="text-sm font-bold text-[#0A0A0A]">District-Wise Commission Breakdown</h3>
+                  <p className="text-xs text-[#6B7280]">Click any district bar to filter the BCA Register</p>
                 </div>
                 <span className="text-xs text-[#0A5C36] font-bold">BCA 80% Share</span>
               </div>

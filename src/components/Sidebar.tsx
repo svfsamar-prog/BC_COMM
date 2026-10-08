@@ -6,37 +6,45 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useCommission } from '@/context/CommissionContext';
 import {
   Gauge,
-  Settings,
-  FileBarChart2,
+  Users,
+  Receipt,
+  QrCode,
   ShieldCheck,
-  Banknote,
-  UserPlus,
+  UploadCloud,
+  FileSpreadsheet,
+  FileText,
   ChevronRight,
   ChevronDown,
-  LayoutGrid,
-  Users,
-  Building,
   LogOut,
+  Layers,
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { activeTab, setActiveTab } = useCommission();
+  const {
+    activeTab,
+    setActiveTab,
+    setIsUploadModalOpen,
+    exportPayoutListPdf,
+    exportBulkVouchersPdf,
+    exportCurrentExcel,
+    exportCurrentPdf,
+  } = useCommission();
   const { logout } = useAuth();
 
-  const [expandedMenu, setExpandedMenu] = useState<string | null>('reports');
+  const [expandedSection, setExpandedSection] = useState<string | null>('commission');
 
-  const toggleSubmenu = (key: string) => {
-    setExpandedMenu(expandedMenu === key ? null : key);
+  const toggleSection = (key: string) => {
+    setExpandedSection(expandedSection === key ? null : key);
   };
 
   return (
     <>
       {/* Desktop Left Sidebar (Sanjivani Forest Green `#0A5C36`) */}
       <aside className="hidden md:flex flex-col w-64 shrink-0 bg-[#0A5C36] text-white min-h-screen select-none shadow-xl border-r border-[#004D25]">
-        {/* Top Logo Container: Crisp White Rounded Card as in Screenshot */}
+        {/* Top Logo Card */}
         <div className="p-3.5 border-b border-[#004D25]/60 bg-[#084B26]">
           <Link href="/" className="block bg-white p-2 rounded-lg shadow-sm hover:opacity-95 transition-opacity">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -63,60 +71,19 @@ export const Sidebar: React.FC = () => {
             }`}
           >
             <Gauge className="w-4 h-4 text-emerald-300 shrink-0" />
-            <span>Dashboard</span>
+            <span>Dashboard Overview</span>
           </button>
 
-          {/* Section: AGENT MANAGEMENT */}
-          <div className="pt-4 pb-1.5 px-3">
+          {/* Section 1: COMMISSION MANAGEMENT */}
+          <div className="pt-3 pb-1 px-3">
             <span className="text-[10px] font-bold tracking-wider text-emerald-300/70 uppercase">
-              AGENT MANAGEMENT
+              COMMISSION MANAGEMENT
             </span>
           </div>
 
-          {/* 1. Action */}
           <div>
             <button
-              onClick={() => toggleSubmenu('action')}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <Settings className="w-4 h-4 text-emerald-300" />
-                <span>Action</span>
-              </div>
-              {expandedMenu === 'action' ? (
-                <ChevronDown className="w-3.5 h-3.5 text-emerald-300" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
-              )}
-            </button>
-            {expandedMenu === 'action' && (
-              <div className="pl-9 pr-2 py-1 space-y-1 text-[11px] text-emerald-200">
-                <button
-                  onClick={() => {
-                    setActiveTab('register');
-                    if (pathname !== '/') router.push('/');
-                  }}
-                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors"
-                >
-                  Agent Allocation & Approvals
-                </button>
-                <button
-                  onClick={() => {
-                    setActiveTab('overview');
-                    if (pathname !== '/') router.push('/');
-                  }}
-                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors"
-                >
-                  Device Serial Management
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* 2. Reports (Active Section) */}
-          <div>
-            <button
-              onClick={() => toggleSubmenu('reports')}
+              onClick={() => toggleSection('commission')}
               className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
                 activeTab === 'register'
                   ? 'bg-[#004D25] text-white border-l-3 border-[#E59819]'
@@ -124,16 +91,16 @@ export const Sidebar: React.FC = () => {
               }`}
             >
               <div className="flex items-center gap-2.5">
-                <FileBarChart2 className="w-4 h-4 text-emerald-300" />
-                <span>Reports</span>
+                <Users className="w-4 h-4 text-emerald-300" />
+                <span>BCA Master Register</span>
               </div>
-              {expandedMenu === 'reports' ? (
+              {expandedSection === 'commission' ? (
                 <ChevronDown className="w-3.5 h-3.5 text-emerald-300" />
               ) : (
                 <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
               )}
             </button>
-            {expandedMenu === 'reports' && (
+            {expandedSection === 'commission' && (
               <div className="pl-9 pr-2 py-1 space-y-1 text-[11px] text-emerald-200">
                 <button
                   onClick={() => {
@@ -144,77 +111,83 @@ export const Sidebar: React.FC = () => {
                     activeTab === 'register' ? 'text-white font-bold bg-[#00381B]' : 'hover:bg-[#004D25]'
                   }`}
                 >
-                  Commission Master Register
+                  33-Column Commission Grid
                 </button>
                 <button
                   onClick={() => {
-                    setActiveTab('overview');
-                    if (pathname !== '/') router.push('/');
+                    exportPayoutListPdf();
                   }}
-                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors"
+                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between"
                 >
-                  District Summary & Rankings
+                  <span>Disbursement Payout List</span>
+                  <Receipt className="w-3 h-3 text-emerald-300 opacity-70" />
                 </button>
                 <button
                   onClick={() => {
-                    setActiveTab('schemes');
-                    router.push('/social-schemes');
+                    exportBulkVouchersPdf();
                   }}
-                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors"
+                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between"
                 >
-                  SSS Performance (APY/SBY/JBY)
+                  <span>Bulk QR Vouchers</span>
+                  <QrCode className="w-3 h-3 text-emerald-300 opacity-70" />
                 </button>
               </div>
             )}
           </div>
 
-          {/* 3. Insurance Management */}
-          <div>
-            <button
-              onClick={() => {
-                setActiveTab('schemes');
-                router.push('/social-schemes');
-              }}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <ShieldCheck className="w-4 h-4 text-emerald-300" />
-                <span>Insurance Management</span>
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
-            </button>
+          {/* Section 2: SCHEMES & INSURANCE */}
+          <button
+            onClick={() => {
+              setActiveTab('schemes');
+              router.push('/social-schemes');
+            }}
+            className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors ${
+              pathname === '/social-schemes' ? 'bg-[#004D25] text-white border-l-3 border-[#E59819]' : ''
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <ShieldCheck className="w-4 h-4 text-emerald-300" />
+              <span>Social Security (SSS)</span>
+            </div>
+            <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
+          </button>
+
+          {/* Section 3: DATA & EXPORTS */}
+          <div className="pt-3 pb-1 px-3">
+            <span className="text-[10px] font-bold tracking-wider text-emerald-300/70 uppercase">
+              DATA & EXPORTS
+            </span>
           </div>
 
-          {/* 4. Salary / Commission Payable */}
-          <div>
-            <button
-              onClick={() => {
-                setActiveTab('register');
-                if (pathname !== '/') router.push('/');
-              }}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <Banknote className="w-4 h-4 text-emerald-300" />
-                <span>Salary & Commission</span>
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
-            </button>
-          </div>
+          <button
+            onClick={() => setIsUploadModalOpen(true)}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors text-left"
+          >
+            <UploadCloud className="w-4 h-4 text-emerald-300" />
+            <span>Import Statement File</span>
+          </button>
 
-          {/* 5. Onboard & Replace */}
-          <div>
-            <button
-              onClick={() => toggleSubmenu('onboard')}
-              className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors"
-            >
-              <div className="flex items-center gap-2.5">
-                <UserPlus className="w-4 h-4 text-emerald-300" />
-                <span>Onboard & Replace</span>
-              </div>
-              <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
-            </button>
-          </div>
+          <button
+            onClick={exportCurrentExcel}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
+              <span>Export Excel Matrix</span>
+            </div>
+            <span className="text-[10px] text-emerald-400 bg-[#004D25] px-1.5 py-0.2 rounded font-mono">33 Col</span>
+          </button>
+
+          <button
+            onClick={exportCurrentPdf}
+            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors text-left"
+          >
+            <div className="flex items-center gap-2.5">
+              <FileText className="w-4 h-4 text-emerald-300" />
+              <span>Summary PDF Report</span>
+            </div>
+            <span className="text-[10px] text-emerald-400 bg-[#004D25] px-1.5 py-0.2 rounded font-mono">PDF</span>
+          </button>
         </div>
 
         {/* Quiet Footer Links & Logout */}
