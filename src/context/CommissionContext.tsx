@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useMemo, useEffect } from '
 import { CommissionRecord, FilterState, SummaryMetrics } from '@/types/commission';
 import { INITIAL_COMMISSION_RECORDS } from '@/lib/preloadedData';
 import { exportFilteredCommissionExcel } from '@/lib/exportExcel';
-import { generateSummaryReportPdf } from '@/lib/exportPdf';
+import { generateSummaryReportPdf, generatePayoutListPdf, generateBulkVouchersPdf, generateAgentCommissionVoucherPdf } from '@/lib/exportPdf';
 
 export interface ToastNotification {
   id: number;
@@ -36,6 +36,11 @@ interface CommissionContextType {
   dismissToast: () => void;
   exportCurrentExcel: () => void;
   exportCurrentPdf: () => void;
+  exportPayoutListPdf: () => void;
+  exportBulkVouchersPdf: () => Promise<void>;
+  exportSingleVoucherPdf: (record: CommissionRecord) => Promise<void>;
+  isGeneratingBulk: boolean;
+  bulkProgress: { current: number; total: number } | null;
   statementMonthLabel: string;
   activeTab: 'overview' | 'register' | 'schemes';
   setActiveTab: (tab: 'overview' | 'register' | 'schemes') => void;
@@ -412,9 +417,12 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     setActiveTab('register');
   };
 
+  const [isGeneratingBulk, setIsGeneratingBulk] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ current: number; total: number } | null>(null);
+
   // Exports
   const exportCurrentExcel = () => {
-    const title = filters.dist || filters.state || selectedPeriod || 'Filtered_BCAs';
+    const title = filters.dist || filters.state || (selectedPeriod === 'ALL' ? 'All_Periods' : selectedPeriod) || 'Filtered_BCAs';
     exportFilteredCommissionExcel(filteredRecords, `Sanjivani_Commission_${title}.xlsx`);
     setToast({
       id: Date.now(),
@@ -423,12 +431,58 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   const exportCurrentPdf = () => {
-    const title = filters.dist || filters.state || selectedPeriod || 'Commission Summary';
+    const title = filters.dist || filters.state || (selectedPeriod === 'ALL' ? 'All Statements' : selectedPeriod) || 'Commission Summary';
     generateSummaryReportPdf(filteredRecords, title);
     setToast({
       id: Date.now(),
-      message: `Exported summary PDF for ${filteredRecords.length} BCAs`,
+      message: `Exported summary report for ${filteredRecords.length} BCAs`,
     });
+  };
+
+  const exportPayoutListPdf = () => {
+    const title = filters.dist || filters.state || (selectedPeriod === 'ALL' ? 'All Statements' : selectedPeriod) || 'Payout List';
+    generatePayoutListPdf(filteredRecords, title);
+    setToast({
+      id: Date.now(),
+      message: `Exported payout disbursement list for ${filteredRecords.length} BCAs`,
+    });
+  };
+
+  const exportBulkVouchersPdf = async () => {
+    if (filteredRecords.length === 0) return;
+    setIsGeneratingBulk(true);
+    setBulkProgress({ current: 0, total: filteredRecords.length });
+
+    try {
+      await generateBulkVouchersPdf(filteredRecords, (current, total) => {
+        setBulkProgress({ current, total });
+      });
+      setToast({
+        id: Date.now(),
+        message: `Exported all ${filteredRecords.length} commission vouchers with QR codes`,
+      });
+    } catch (err) {
+      console.error('Failed to generate bulk vouchers:', err);
+      setToast({
+        id: Date.now(),
+        message: 'Failed to generate bulk vouchers. Please try again.',
+      });
+    } finally {
+      setIsGeneratingBulk(false);
+      setBulkProgress(null);
+    }
+  };
+
+  const exportSingleVoucherPdf = async (record: CommissionRecord) => {
+    try {
+      await generateAgentCommissionVoucherPdf(record);
+      setToast({
+        id: Date.now(),
+        message: `Downloaded voucher for ${record.bcaName} (${record.agentId})`,
+      });
+    } catch (err) {
+      console.error('Failed to generate single voucher:', err);
+    }
   };
 
   const statementMonthLabel = selectedPeriod === 'ALL' ? 'All Statements' : (selectedPeriod || 'August 2026');
@@ -459,6 +513,11 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         dismissToast,
         exportCurrentExcel,
         exportCurrentPdf,
+        exportPayoutListPdf,
+        exportBulkVouchersPdf,
+        exportSingleVoucherPdf,
+        isGeneratingBulk,
+        bulkProgress,
         statementMonthLabel,
         activeTab,
         setActiveTab,

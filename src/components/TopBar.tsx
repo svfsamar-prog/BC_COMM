@@ -2,7 +2,20 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useCommission } from '@/context/CommissionContext';
-import { Upload, Download, Calendar, ChevronDown, Check, FileSpreadsheet, FileText, Undo2, X } from 'lucide-react';
+import {
+  Upload,
+  Download,
+  Calendar,
+  ChevronDown,
+  Check,
+  FileSpreadsheet,
+  FileText,
+  ClipboardList,
+  QrCode,
+  Undo2,
+  X,
+  Loader2,
+} from 'lucide-react';
 
 export const TopBar: React.FC = () => {
   const {
@@ -11,8 +24,13 @@ export const TopBar: React.FC = () => {
     setSelectedPeriod,
     setIsUploadModalOpen,
     filteredRecords,
+    filters,
     exportCurrentExcel,
     exportCurrentPdf,
+    exportPayoutListPdf,
+    exportBulkVouchersPdf,
+    isGeneratingBulk,
+    bulkProgress,
     toast,
     dismissToast,
   } = useCommission();
@@ -36,6 +54,8 @@ export const TopBar: React.FC = () => {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  const scopeLabel = `${filteredRecords.length} BCAs · ${filters.dist || filters.state || 'All Districts'} · ${selectedPeriod === 'ALL' ? 'All Months' : selectedPeriod}`;
 
   return (
     <>
@@ -117,34 +137,71 @@ export const TopBar: React.FC = () => {
             </button>
 
             {isExportOpen && (
-              <div className="absolute right-0 mt-1 w-56 bg-white border border-[#E5E7EB] rounded-md shadow-lg py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
-                <div className="px-3 py-1.5 text-[11px] text-[#6B7280] border-b border-[#F3F4F6]">
-                  Exports {filteredRecords.length.toLocaleString()} filtered BCAs
+              <div className="absolute right-0 mt-1 w-64 bg-white border border-[#E5E7EB] rounded-md shadow-xl py-1 z-50 animate-in fade-in zoom-in-95 duration-100">
+                {/* Dynamic Scope Header */}
+                <div className="px-3.5 py-2 text-[11px] text-[#6B7280] bg-[#FAFAFA] border-b border-[#E5E7EB]">
+                  <div className="font-semibold text-[#0A0A0A] truncate">{scopeLabel}</div>
+                  <div className="text-[10px] text-[#9CA3AF] mt-0.5">Select export format below</div>
                 </div>
-                <button
-                  onClick={() => {
-                    exportCurrentExcel();
-                    setIsExportOpen(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors"
-                >
-                  <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
-                  <div>
-                    <div className="font-medium">Excel (full 33 columns)</div>
-                    <div className="text-[10px] text-[#6B7280]">Complete financial matrix with totals</div>
-                  </div>
-                </button>
+
+                {/* 1. Summary Report (PDF) */}
                 <button
                   onClick={() => {
                     exportCurrentPdf();
                     setIsExportOpen(false);
                   }}
-                  className="w-full text-left px-3 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors border-t border-[#F3F4F6]"
+                  className="w-full text-left px-3.5 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors"
                 >
-                  <FileText className="w-4 h-4 text-rose-600" />
+                  <FileText className="w-4 h-4 text-rose-600 shrink-0" />
                   <div>
-                    <div className="font-medium">PDF summary</div>
-                    <div className="text-[10px] text-[#6B7280]">Printable disbursement summary</div>
+                    <div className="font-medium text-[#0A0A0A]">Summary report (PDF)</div>
+                    <div className="text-[10px] text-[#6B7280]">Landscape · Executive + 9-col register</div>
+                  </div>
+                </button>
+
+                {/* 2. Payout List (PDF) */}
+                <button
+                  onClick={() => {
+                    exportPayoutListPdf();
+                    setIsExportOpen(false);
+                  }}
+                  className="w-full text-left px-3.5 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors border-t border-[#F3F4F6]"
+                >
+                  <ClipboardList className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <div>
+                    <div className="font-medium text-[#0A0A0A]">Payout list (PDF)</div>
+                    <div className="text-[10px] text-[#6B7280]">Portrait · Signatures & words total</div>
+                  </div>
+                </button>
+
+                {/* 3. All Vouchers (PDF) */}
+                <button
+                  onClick={() => {
+                    exportBulkVouchersPdf();
+                    setIsExportOpen(false);
+                  }}
+                  disabled={isGeneratingBulk}
+                  className="w-full text-left px-3.5 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors border-t border-[#F3F4F6] disabled:opacity-50"
+                >
+                  <QrCode className="w-4 h-4 text-amber-600 shrink-0" />
+                  <div>
+                    <div className="font-medium text-[#0A0A0A]">All vouchers (PDF)</div>
+                    <div className="text-[10px] text-[#6B7280]">1 page/BCA · Verifiable QR codes</div>
+                  </div>
+                </button>
+
+                {/* 4. Excel (full 33 columns) */}
+                <button
+                  onClick={() => {
+                    exportCurrentExcel();
+                    setIsExportOpen(false);
+                  }}
+                  className="w-full text-left px-3.5 py-2 text-xs text-[#0A0A0A] hover:bg-[#F3F4F6] flex items-center gap-2.5 transition-colors border-t border-[#F3F4F6]"
+                >
+                  <FileSpreadsheet className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <div className="font-medium text-[#0A0A0A]">Excel (full 33 columns)</div>
+                    <div className="text-[10px] text-[#6B7280]">Complete financial matrix with totals</div>
                   </div>
                 </button>
               </div>
@@ -152,6 +209,33 @@ export const TopBar: React.FC = () => {
           </div>
         </div>
       </header>
+
+      {/* Bulk Generation Progress Modal */}
+      {isGeneratingBulk && bulkProgress && (
+        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full border border-[#E5E7EB] text-center space-y-4 animate-in zoom-in-95 duration-150">
+            <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto text-amber-600">
+              <Loader2 className="w-6 h-6 animate-spin" />
+            </div>
+            <div>
+              <h3 className="text-base font-bold text-[#0A0A0A]">Generating Commission Vouchers</h3>
+              <p className="text-xs text-[#6B7280] mt-1">
+                Creating QR verified voucher pages ({bulkProgress.current} / {bulkProgress.total})
+              </p>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full bg-[#E5E7EB] h-2 rounded-full overflow-hidden">
+              <div
+                className="bg-[#0F2942] h-full transition-all duration-150"
+                style={{ width: `${Math.round((bulkProgress.current / Math.max(bulkProgress.total, 1)) * 100)}%` }}
+              />
+            </div>
+            <div className="text-[11px] text-[#9CA3AF] font-mono">
+              {Math.round((bulkProgress.current / Math.max(bulkProgress.total, 1)) * 100)}% complete
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating Toast Notification with Undo */}
       {toast && (

@@ -3,11 +3,10 @@
 import React, { useEffect } from 'react';
 import { useCommission } from '@/context/CommissionContext';
 import { X, FileText, Download, UserCheck, Building2, MapPin, CreditCard, Shield, CalendarCheck } from 'lucide-react';
-import { generateAgentCommissionPdf } from '@/lib/exportPdf';
 import { exportFilteredCommissionExcel } from '@/lib/exportExcel';
 
 export const AgentDetailDrawer: React.FC = () => {
-  const { selectedAgent, setSelectedAgent, statementMonthLabel } = useCommission();
+  const { selectedAgent, setSelectedAgent, statementMonthLabel, exportSingleVoucherPdf } = useCommission();
 
   // Escape key closes drawer
   useEffect(() => {
@@ -25,7 +24,7 @@ export const AgentDetailDrawer: React.FC = () => {
   if (!selectedAgent) return null;
 
   const handleDownloadPdf = () => {
-    generateAgentCommissionPdf(selectedAgent);
+    exportSingleVoucherPdf(selectedAgent);
   };
 
   const handleDownloadExcel = () => {
