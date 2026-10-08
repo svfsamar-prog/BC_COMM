@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { supabase, mapDbToRecord, mapRecordToDb } from '@/lib/supabaseClient';
+import { supabase, mapMonthlyRecordToCommission, mapCommissionToMonthlyRecord } from '@/lib/supabaseClient';
 import { INITIAL_COMMISSION_RECORDS } from '@/lib/preloadedData';
 import { CommissionRecord } from '@/types/commission';
 
@@ -8,11 +8,11 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const month = searchParams.get('month');
 
-    // Query Supabase directly
-    let query = supabase.from('commission_records').select('*').order('bc_comm', { ascending: false });
+    // Query sanjivani.monthly_records directly
+    let query = supabase.from('monthly_records').select('*').order('bc_comm', { ascending: false });
 
     if (month && month !== 'ALL') {
-      query = query.eq('statement_month', month);
+      query = query.eq('month_year', month);
     }
 
     const { data, error } = await query;
@@ -30,12 +30,12 @@ export async function GET(request: Request) {
       });
     }
 
-    const records: CommissionRecord[] = data.map(mapDbToRecord);
+    const records: CommissionRecord[] = data.map(mapMonthlyRecordToCommission);
 
     return NextResponse.json({
       total: records.length,
       records,
-      source: 'supabase',
+      source: 'sanjivani.monthly_records',
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Internal Server Error' }, { status: 500 });
@@ -54,28 +54,62 @@ export async function POST(request: Request) {
     const targetMonths = Array.from(new Set(records.map((r) => r.statementMonth).filter(Boolean)));
     const targetMonth = targetMonths[0] || 'CURRENT STATEMENT';
 
-    // Delete existing records for this month
+    // 1. Upsert into sanjivani.periods
     for (const m of targetMonths) {
-      await supabase.from('commission_records').delete().eq('statement_month', m);
+      await supabase.from('periods').upsert({
+        month_year: m,
+        year: 2026,
+        month: 9,
+        days_in_month: 30,
+        uploaded_by: 'admin',
+      });
     }
 
-    // Upsert in batches of 100
-    const dbRows = records.map(mapRecordToDb);
+    // 2. Upsert into sanjivani.agents
+    const agentRows = records.map((r) => ({
+      agent_id: r.agentId,
+      bca_name: r.bcaName,
+      state_name: r.stateName,
+      zone_name: r.zoneName,
+      dist: r.dist,
+      mandal: r.mandal,
+      base_branch: r.baseBranch,
+      sol_id: r.solId,
+      village_name: r.villageName,
+      date_of_joining: r.dateOfJoining,
+      location_type: r.locationType || 'RURAL',
+      company_name: r.companyName || 'SANJIVANI',
+    }));
+
+    for (let i = 0; i < agentRows.length; i += 100) {
+      const chunk = agentRows.slice(i, i + 100);
+      await supabase.from('agents').upsert(chunk);
+    }
+
+    // 3. Delete existing matching months in sanjivani.monthly_records
+    for (const m of targetMonths) {
+      await supabase.from('monthly_records').delete().eq('month_year', m);
+    }
+
+    // 4. Upsert into sanjivani.monthly_records in batches
+    const dbRows = records.map(mapCommissionToMonthlyRecord);
     for (let i = 0; i < dbRows.length; i += 100) {
       const chunk = dbRows.slice(i, i + 100);
-      const { error } = await supabase.from('commission_records').upsert(chunk);
+      const { error } = await supabase.from('monthly_records').insert(chunk);
       if (error) {
-        console.error('Supabase batch insert error:', error);
+        console.error('sanjivani.monthly_records insert error:', error);
         throw new Error(error.message);
       }
     }
 
     return NextResponse.json({
       success: true,
+      schema: 'sanjivani',
+      table: 'monthly_records',
       month: targetMonth,
       inserted: records.length,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to save records' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to save to sanjivani schema' }, { status: 500 });
   }
 }
