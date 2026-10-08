@@ -1,6 +1,7 @@
 /**
  * BC_COMM — PDF Formatting Utilities
  * Standardized whole-rupee Indian numbering, words converter, and date formatters.
+ * Uses ASCII 'Rs.' currency format to prevent broken Unicode symbols in PDF output.
  */
 
 // Round to whole rupees (0.50 rounds up)
@@ -9,22 +10,22 @@ export function roundRupees(val: number): number {
   return Math.round(val);
 }
 
-// Format whole rupees with Indian number grouping: ₹8,420
+// Format whole rupees with Indian number grouping: Rs. 8,420
 export function formatInrPdf(val: number): string {
   const rounded = roundRupees(val);
-  return `₹${rounded.toLocaleString('en-IN')}`;
+  return `Rs. ${rounded.toLocaleString('en-IN')}`;
 }
 
-// Format compact currency for headlines: ₹48.2 L / ₹3.2 Cr
+// Format compact currency for headlines: Rs. 48.2 L / Rs. 3.2 Cr
 export function formatCompactInrPdf(val: number): string {
   const rounded = roundRupees(val);
   if (rounded >= 10000000) {
-    return `₹${(rounded / 10000000).toFixed(2)} Cr`;
+    return `Rs. ${(rounded / 10000000).toFixed(2)} Cr`;
   }
   if (rounded >= 100000) {
-    return `₹${(rounded / 100000).toFixed(2)} L`;
+    return `Rs. ${(rounded / 100000).toFixed(2)} L`;
   }
-  return `₹${rounded.toLocaleString('en-IN')}`;
+  return `Rs. ${rounded.toLocaleString('en-IN')}`;
 }
 
 // Format standard fixed date: 08 Oct 2026

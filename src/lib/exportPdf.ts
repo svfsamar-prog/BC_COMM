@@ -3,12 +3,14 @@
  * 1. Summary Report (Landscape A4, 9-column register, grouped subtotals)
  * 2. Payout List (Portrait A4, disbursement register with signatures and words total)
  * 3. Commission Voucher (Single & Bulk Portrait A4, verifiable QR code, words amount)
+ *
+ * Fully ASCII-safe currency format ('Rs.') and embedded official Sanjivani logo.
  */
 
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { CommissionRecord } from '@/types/commission';
-import { PDF_COLORS, drawSanjivaniLogo } from './pdf/assets';
+import { PDF_COLORS, drawSanjivaniLogo, getOfficialLogoDataUrl } from './pdf/assets';
 import { applyStandardPageFrame } from './pdf/frame';
 import {
   formatInrPdf,
@@ -23,10 +25,12 @@ import { generateVerificationQrDataUrl } from './pdf/qr';
 // ==============================================================================
 // 1. SUMMARY REPORT (Landscape A4)
 // ==============================================================================
-export function generateSummaryReportPdf(
+export async function generateSummaryReportPdf(
   records: CommissionRecord[],
   scopeTitle: string = 'All Districts'
 ) {
+  const logoDataUrl = await getOfficialLogoDataUrl();
+
   const doc = new jsPDF({
     orientation: 'landscape',
     unit: 'mm',
@@ -76,7 +80,7 @@ export function generateSummaryReportPdf(
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(...PDF_COLORS.textSecondary);
-  doc.text(`Scope: ${records.length} BCAs • ${scopeTitle} • Statement Month: ${statementMonth}`, margin, startY);
+  doc.text(`Scope: ${records.length} BCAs  |  ${scopeTitle}  |  Statement Month: ${statementMonth}`, margin, startY);
 
   startY += 5;
 
@@ -98,7 +102,7 @@ export function generateSummaryReportPdf(
   doc.setFontSize(7);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...PDF_COLORS.textSecondary);
-  doc.text(`Exact Gross: ₹${grandGross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 4, startY + 19);
+  doc.text(`Exact Gross: Rs. ${grandGross.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, margin + 4, startY + 19);
 
   // 2. BCA Payout (80%)
   const card2X = margin + cardWidth + 4;
@@ -311,10 +315,11 @@ export function generateSummaryReportPdf(
     },
   });
 
-  // Apply Standard Header & Footer Frame
+  // Apply Standard Header & Footer Frame with embedded logo
   applyStandardPageFrame(doc, {
     title: 'COMMISSION SUMMARY & REGIONAL REPORT',
     statementMonth,
+    logoDataUrl,
   });
 
   doc.save(`Sanjivani_Summary_Report_${scopeTitle.replace(/\s+/g, '_')}.pdf`);
@@ -323,10 +328,12 @@ export function generateSummaryReportPdf(
 // ==============================================================================
 // 2. PAYOUT LIST (Portrait A4)
 // ==============================================================================
-export function generatePayoutListPdf(
+export async function generatePayoutListPdf(
   records: CommissionRecord[],
   scopeTitle: string = 'All Districts'
 ) {
+  const logoDataUrl = await getOfficialLogoDataUrl();
+
   const doc = new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -455,10 +462,11 @@ export function generatePayoutListPdf(
   doc.text('Checked By: ____________________', margin + colW, sigY);
   doc.text('Approved By: ____________________', margin + colW * 2, sigY);
 
-  // Standard Header & Footer
+  // Standard Header & Footer with embedded logo
   applyStandardPageFrame(doc, {
     title: 'BCA DISBURSEMENT & SIGNATURE REGISTER',
     statementMonth,
+    logoDataUrl,
   });
 
   doc.save(`Sanjivani_Payout_List_${scopeTitle.replace(/\s+/g, '_')}.pdf`);
@@ -469,8 +477,10 @@ export function generatePayoutListPdf(
 // ==============================================================================
 export async function generateAgentCommissionVoucherPdf(
   record: CommissionRecord,
-  options?: { returnDoc?: boolean; existingDoc?: jsPDF }
+  options?: { returnDoc?: boolean; existingDoc?: jsPDF; logoDataUrl?: string | null }
 ) {
+  const logoDataUrl = options?.logoDataUrl || (await getOfficialLogoDataUrl());
+
   const doc = options?.existingDoc || new jsPDF({
     orientation: 'portrait',
     unit: 'mm',
@@ -553,7 +563,7 @@ export async function generateAgentCommissionVoucherPdf(
   doc.text('BCA Name:', col1X, y + 9.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PDF_COLORS.textPrimary);
-  doc.text(record.bcaName || '—', col1X + 22, y + 9.5);
+  doc.text(record.bcaName || '-', col1X + 22, y + 9.5);
 
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...PDF_COLORS.textSecondary);
@@ -589,13 +599,13 @@ export async function generateAgentCommissionVoucherPdf(
   doc.text('Village / Attendance:', col2X, y + 19.5);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...PDF_COLORS.textPrimary);
-  doc.text(`${record.villageName || '—'}  (${record.loginDays} Days / ${record.loginPercentage}%)`, col2X + 22, y + 19.5);
+  doc.text(`${record.villageName || '-'}  (${record.loginDays} Days / ${record.loginPercentage}%)`, col2X + 22, y + 19.5);
 
   // Small bottom line inside profile
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(6.5);
   doc.setTextColor(...PDF_COLORS.textSecondary);
-  doc.text(`Terminal Device ID: ${record.deviceId || 'POS-01'}  •  Location: ${record.locationType || 'RURAL'}  •  Company: ${record.companyName || 'SANJIVANI'}`, col1X, y + 24);
+  doc.text(`Terminal Device ID: ${record.deviceId || 'POS-01'}  |  Location: ${record.locationType || 'RURAL'}  |  Company: ${record.companyName || 'SANJIVANI'}`, col1X, y + 24);
 
   y += 30;
 
@@ -615,7 +625,7 @@ export async function generateAgentCommissionVoucherPdf(
   doc.setFontSize(7.5);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(...PDF_COLORS.textSecondary);
-  doc.text(`Gross Reconciled: ${formatInrPdf(record.netCommission || 0)}   •   Corporate Retention (20%): ${formatInrPdf(record.corpComm || 0)}`, margin + 65, y + 13.5);
+  doc.text(`Gross Reconciled: ${formatInrPdf(record.netCommission || 0)}   |   Corporate Retention (20%): ${formatInrPdf(record.corpComm || 0)}`, margin + 65, y + 13.5);
 
   y += 24;
 
@@ -625,8 +635,8 @@ export async function generateAgentCommissionVoucherPdf(
     head: [['Earnings & Activity Category', 'Volume / Count', 'Total Commission (INR)']],
     body: [
       ['Account Opening Operations (Funded + Non-Funded)', `${record.totalNoOfAcctOpn} Accounts (${record.fundedNoOfAcctOpn} Funded)`, formatInrPdf(record.commTotalAcctOpn || 0)],
-      ['Financial Cash Transactions & Deposits', `${record.financialTxn} Txns (Vol: ₹${(record.txnAmt || 0).toLocaleString('en-IN')})`, formatInrPdf(record.txnComm || 0)],
-      ['Remittance Services (Rs 10 Fixed)', `${record.remittanceCount} Remittances`, formatInrPdf(record.remittanceRs10 || 0)],
+      ['Financial Cash Transactions & Deposits', `${record.financialTxn} Txns (Vol: Rs. ${(record.txnAmt || 0).toLocaleString('en-IN')})`, formatInrPdf(record.txnComm || 0)],
+      ['Remittance Services (Rs. 10 Fixed)', `${record.remittanceCount} Remittances`, formatInrPdf(record.remittanceRs10 || 0)],
       ['Fixed Base Commission (Attendance Mandated)', `${record.loginDays} Days Active`, formatInrPdf(record.fixedCommission || 0)],
       ['Re-KYC Services', `${record.reKycCount} Re-KYCs`, formatInrPdf(record.reKycComm || 0)],
     ],
@@ -729,10 +739,11 @@ export async function generateAgentCommissionVoucherPdf(
   doc.text('BCA Signature & Stamp: ______________________', margin, sigY);
   doc.text('Authorized Signatory: ______________________', pageWidth - margin, sigY, { align: 'right' });
 
-  // Standard Header & Footer
+  // Standard Header & Footer with embedded logo
   applyStandardPageFrame(doc, {
     title: 'COMMISSION DISBURSEMENT VOUCHER',
     statementMonth,
+    logoDataUrl,
   });
 
   if (options?.returnDoc) {
@@ -752,6 +763,7 @@ export async function generateBulkVouchersPdf(
 ) {
   if (!records || records.length === 0) return;
 
+  const logoDataUrl = await getOfficialLogoDataUrl();
   const total = records.length;
   const doc = new jsPDF({
     orientation: 'portrait',
@@ -798,8 +810,8 @@ export async function generateBulkVouchersPdf(
     if (i > 0) doc.addPage();
     const record = records[i];
 
-    const monthCode = getStatementMonthCode(record.statementMonth || statementMonth);
-    const voucherNo = `SVF/${monthCode}/${record.agentId}`;
+    const currentMonthCode = getStatementMonthCode(record.statementMonth || statementMonth);
+    const voucherNo = `SVF/${currentMonthCode}/${record.agentId}`;
     const qrInfo = voucherMap.get(voucherNo);
     const verifyUrl = qrInfo?.verifyUrl || `https://bc-comm.vercel.app/verify/${encodeURIComponent(voucherNo)}`;
     const shortCode = qrInfo?.shortCode || 'VERIFIED';
@@ -845,7 +857,7 @@ export async function generateBulkVouchersPdf(
     doc.text('BCA Name:', col1X, y + 9.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PDF_COLORS.textPrimary);
-    doc.text(record.bcaName || '—', col1X + 22, y + 9.5);
+    doc.text(record.bcaName || '-', col1X + 22, y + 9.5);
 
     doc.text('Agent ID:', col1X, y + 14.5);
     doc.setFont('helvetica', 'bold');
@@ -871,12 +883,12 @@ export async function generateBulkVouchersPdf(
     doc.text('Village / Attendance:', col2X, y + 19.5);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(...PDF_COLORS.textPrimary);
-    doc.text(`${record.villageName || '—'}  (${record.loginDays} Days / ${record.loginPercentage}%)`, col2X + 22, y + 19.5);
+    doc.text(`${record.villageName || '-'}  (${record.loginDays} Days / ${record.loginPercentage}%)`, col2X + 22, y + 19.5);
 
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(6.5);
     doc.setTextColor(...PDF_COLORS.textSecondary);
-    doc.text(`Terminal Device ID: ${record.deviceId || 'POS-01'}  •  Location: ${record.locationType || 'RURAL'}  •  Company: ${record.companyName || 'SANJIVANI'}`, col1X, y + 24);
+    doc.text(`Terminal Device ID: ${record.deviceId || 'POS-01'}  |  Location: ${record.locationType || 'RURAL'}  |  Company: ${record.companyName || 'SANJIVANI'}`, col1X, y + 24);
 
     y += 30;
 
@@ -896,7 +908,7 @@ export async function generateBulkVouchersPdf(
     doc.setFontSize(7.5);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(...PDF_COLORS.textSecondary);
-    doc.text(`Gross Reconciled: ${formatInrPdf(record.netCommission || 0)}   •   Corporate Retention (20%): ${formatInrPdf(record.corpComm || 0)}`, margin + 65, y + 13.5);
+    doc.text(`Gross Reconciled: ${formatInrPdf(record.netCommission || 0)}   |   Corporate Retention (20%): ${formatInrPdf(record.corpComm || 0)}`, margin + 65, y + 13.5);
 
     y += 24;
 
@@ -906,8 +918,8 @@ export async function generateBulkVouchersPdf(
       head: [['Earnings & Activity Category', 'Volume / Count', 'Total Commission (INR)']],
       body: [
         ['Account Opening Operations (Funded + Non-Funded)', `${record.totalNoOfAcctOpn} Accounts (${record.fundedNoOfAcctOpn} Funded)`, formatInrPdf(record.commTotalAcctOpn || 0)],
-        ['Financial Cash Transactions & Deposits', `${record.financialTxn} Txns (Vol: ₹${(record.txnAmt || 0).toLocaleString('en-IN')})`, formatInrPdf(record.txnComm || 0)],
-        ['Remittance Services (Rs 10 Fixed)', `${record.remittanceCount} Remittances`, formatInrPdf(record.remittanceRs10 || 0)],
+        ['Financial Cash Transactions & Deposits', `${record.financialTxn} Txns (Vol: Rs. ${(record.txnAmt || 0).toLocaleString('en-IN')})`, formatInrPdf(record.txnComm || 0)],
+        ['Remittance Services (Rs. 10 Fixed)', `${record.remittanceCount} Remittances`, formatInrPdf(record.remittanceRs10 || 0)],
         ['Fixed Base Commission (Attendance Mandated)', `${record.loginDays} Days Active`, formatInrPdf(record.fixedCommission || 0)],
         ['Re-KYC Services', `${record.reKycCount} Re-KYCs`, formatInrPdf(record.reKycComm || 0)],
       ],
@@ -1009,10 +1021,11 @@ export async function generateBulkVouchersPdf(
     }
   }
 
-  // Apply Standard Frame across all pages
+  // Apply Standard Frame with embedded logo across all pages
   applyStandardPageFrame(doc, {
     title: 'COMMISSION DISBURSEMENT VOUCHER',
     statementMonth,
+    logoDataUrl,
   });
 
   doc.save(`Sanjivani_All_Vouchers_${monthCode}_(${total}_BCAs).pdf`);

@@ -185,13 +185,13 @@ export default function HomePage() {
           <div className="flex items-center gap-3 overflow-hidden flex-1 mr-4">
             {/* Saffron NOTICE Badge */}
             <div className="flex items-center gap-1.5 px-3 py-1 bg-[#D97706] text-white font-bold rounded text-[11px] uppercase tracking-wider shrink-0 shadow-xs">
-              <span>📢 NOTICE</span>
+              <span>NOTICE</span>
             </div>
 
             {/* Marquee Notice Content */}
             <div className="overflow-hidden whitespace-nowrap flex-1">
               <div className={`inline-block font-medium ${isTickerPaused ? '' : 'animate-marquee'}`}>
-                Ensure to follow the working hours from 8 AM to 8 PM • Keep the working place clean with proper sitting arrangements for the customer • All Business Correspondents must complete monthly statement reconciliation by 10th of every month • APY, PMSBY, PMJJBY social security schemes must be strictly enrolled as per RBI & DFS guidelines.
+                Ensure to follow the working hours from 8 AM to 8 PM - Keep the working place clean with proper sitting arrangements for the customer - All Business Correspondents must complete monthly statement reconciliation by 10th of every month - APY, PMSBY, PMJJBY social security schemes must be strictly enrolled as per RBI & DFS guidelines.
               </div>
             </div>
           </div>

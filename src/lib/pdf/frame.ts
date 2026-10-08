@@ -1,6 +1,7 @@
 /**
  * BC_COMM — PDF Standard Page Frame Decorator
- * Draws standard header, title banner, saffron accent line, and "Page X of Y" footers.
+ * Draws standard header, official logo image, title banner, saffron accent line, and "Page X of Y" footers.
+ * Uses ASCII dividers to prevent symbol corruption.
  */
 import jsPDF from 'jspdf';
 import { PDF_COLORS, drawSanjivaniLogo } from './assets';
@@ -10,6 +11,7 @@ interface PageFrameOptions {
   title: string;
   statementMonth?: string;
   showDate?: boolean;
+  logoDataUrl?: string | null;
 }
 
 export function applyStandardPageFrame(doc: jsPDF, options: PageFrameOptions) {
@@ -24,7 +26,7 @@ export function applyStandardPageFrame(doc: jsPDF, options: PageFrameOptions) {
 
     // ==================== HEADER ====================
     // 1. Logo & Org Info (Left)
-    drawSanjivaniLogo(doc, margin, 8, 9);
+    drawSanjivaniLogo(doc, margin, 7, 9, options.logoDataUrl);
 
     // 2. Document Title & Period (Right)
     doc.setFont('helvetica', 'bold');
@@ -36,7 +38,7 @@ export function applyStandardPageFrame(doc: jsPDF, options: PageFrameOptions) {
     doc.setFontSize(7.5);
     doc.setTextColor(...PDF_COLORS.textSecondary);
     const dateStr = formatFixedDate();
-    const periodStr = options.statementMonth ? `Period: ${options.statementMonth}  •  ` : '';
+    const periodStr = options.statementMonth ? `Period: ${options.statementMonth}  |  ` : '';
     doc.text(`${periodStr}Generated: ${dateStr}`, pageWidth - margin, 16, { align: 'right' });
 
     // 3. Thin Saffron Accent Rule
@@ -52,7 +54,7 @@ export function applyStandardPageFrame(doc: jsPDF, options: PageFrameOptions) {
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...PDF_COLORS.textSecondary);
-    doc.text('Sanjivani Vikas Foundation • Computer-generated statutory document', margin, pageHeight - 7.5);
+    doc.text('Sanjivani Vikas Foundation - Computer-generated statutory document', margin, pageHeight - 7.5);
 
     // Page Numbers: "Page X of Y"
     doc.setFont('helvetica', 'bold');

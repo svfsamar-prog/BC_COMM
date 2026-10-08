@@ -1,10 +1,13 @@
 import ExcelJS from 'exceljs';
 import { CommissionRecord } from '@/types/commission';
+import { getOfficialLogoDataUrl } from './pdf/assets';
 
 export async function exportFilteredCommissionExcel(
   records: CommissionRecord[],
   fileName: string = 'Sanjivani_Commission_Export.xlsx'
 ) {
+  const logoBase64 = await getOfficialLogoDataUrl();
+
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'Sanjivani Vikas Foundation';
   workbook.lastModifiedBy = 'BC Commission Portal';
@@ -52,18 +55,34 @@ export async function exportFilteredCommissionExcel(
     { header: 'CORP_COMM', key: 'corpComm', width: 18 },
   ];
 
+  // Embed Official Logo Image into Excel Worksheet if available
+  if (logoBase64) {
+    try {
+      const imageId = workbook.addImage({
+        base64: logoBase64,
+        extension: 'png',
+      });
+      worksheet.addImage(imageId, {
+        tl: { col: 0.1, row: 0.15 },
+        ext: { width: 150, height: 35 },
+      });
+    } catch (err) {
+      console.warn('Excel logo insertion fallback:', err);
+    }
+  }
+
   // Title Banner
   worksheet.mergeCells('A1:AH1');
   const titleCell = worksheet.getCell('A1');
-  titleCell.value = `SANJIVANI VIKAS FOUNDATION — BUSINESS CORRESPONDENT COMMISSION REPORT (${records.length} BCAs)`;
+  titleCell.value = `      SANJIVANI VIKAS FOUNDATION - BUSINESS CORRESPONDENT COMMISSION REPORT (${records.length} BCAs)`;
   titleCell.font = { name: 'Calibri', size: 12, bold: true, color: { argb: 'FFFFFFFF' } };
   titleCell.fill = {
     type: 'pattern',
     pattern: 'solid',
     fgColor: { argb: 'FF004D25' }, // Deep Forest Green
   };
-  titleCell.alignment = { horizontal: 'left', vertical: 'middle', indent: 1 };
-  worksheet.getRow(1).height = 28;
+  titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+  worksheet.getRow(1).height = 36;
 
   // Header Row (Row 2)
   const headerRow = worksheet.getRow(2);
@@ -143,7 +162,7 @@ export async function exportFilteredCommissionExcel(
         right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
       };
 
-      // Alignment & number formatting
+      // Alignment & number formatting (Using clean standard numeric & currency formatting)
       if (colNumber <= 8) {
         cell.alignment = { horizontal: colNumber === 6 ? 'center' : 'left', vertical: 'middle' };
       } else if (colNumber === 21) {
@@ -151,9 +170,9 @@ export async function exportFilteredCommissionExcel(
         cell.alignment = { horizontal: 'right', vertical: 'middle' };
         cell.numFmt = '0.0%';
       } else if ([16, 17, 19, 22, 24, 26, 28, 29, 31, 32, 33, 34].includes(colNumber)) {
-        // Currency amounts
+        // Currency amounts in Rs.
         cell.alignment = { horizontal: 'right', vertical: 'middle' };
-        cell.numFmt = '₹#,##0.00';
+        cell.numFmt = '#,##0.00';
       } else {
         // Counts / numeric
         cell.alignment = { horizontal: 'right', vertical: 'middle' };
@@ -216,7 +235,7 @@ export async function exportFilteredCommissionExcel(
     if (colNumber === 21) {
       cell.numFmt = '0.0%';
     } else if ([16, 17, 19, 22, 24, 26, 28, 29, 31, 32, 33, 34].includes(colNumber)) {
-      cell.numFmt = '₹#,##0.00';
+      cell.numFmt = '#,##0.00';
     } else if (colNumber > 8) {
       cell.numFmt = '#,##0';
     }
