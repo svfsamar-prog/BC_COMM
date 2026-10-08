@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const month = searchParams.get('month');
 
     // Query sanjivani.monthly_records directly
-    let query = supabase.from('monthly_records').select('*').order('bc_comm', { ascending: false });
+    let query = supabase.from('monthly_records').select('*').limit(10000).order('bc_comm', { ascending: false });
 
     if (month && month !== 'ALL') {
       query = query.eq('month_year', month);
