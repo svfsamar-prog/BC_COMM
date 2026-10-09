@@ -13,6 +13,9 @@ import {
   Shield,
   Activity,
   CheckCircle2,
+  Loader2,
+  RefreshCw,
+  UploadCloud,
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -28,6 +31,10 @@ export default function HomePage() {
     filterByNeedsAttention,
     setSelectedAgent,
     reconciliation,
+    isLoadingDb,
+    dbError,
+    refreshData,
+    setIsUploadModalOpen,
   } = useCommission();
 
   // District Commission Aggregations for the Bar Chart
@@ -69,6 +76,63 @@ export default function HomePage() {
     }
     return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   };
+
+  // 1. Loading State (U8)
+  if (isLoadingDb && records.length === 0) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center space-y-3 bg-white rounded-xl border border-[#E5E7EB] p-8">
+        <Loader2 className="w-8 h-8 animate-spin text-[#0A5C36]" />
+        <p className="text-sm font-semibold text-[#0A0A0A]">Loading commission records from database...</p>
+        <p className="text-xs text-[#6B7280]">Statement Period: {statementMonthLabel}</p>
+      </div>
+    );
+  }
+
+  // 2. Error State with Retry (U8)
+  if (dbError && records.length === 0) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center space-y-4 bg-white rounded-xl border border-rose-200 p-8 text-center">
+        <div className="w-12 h-12 rounded-full bg-rose-50 flex items-center justify-center text-rose-600">
+          <AlertCircle className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-[#0A0A0A]">Failed to load commission data</h2>
+          <p className="text-xs text-rose-600 mt-1 max-w-md">{dbError}</p>
+        </div>
+        <button
+          onClick={refreshData}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#0A5C36] hover:bg-[#084B26] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
+        >
+          <RefreshCw className="w-3.5 h-3.5" />
+          <span>Retry Connection</span>
+        </button>
+      </div>
+    );
+  }
+
+  // 3. Empty State with Import (U8)
+  if (!isLoadingDb && records.length === 0) {
+    return (
+      <div className="min-h-[400px] flex flex-col items-center justify-center space-y-4 bg-white rounded-xl border border-[#E5E7EB] p-8 text-center">
+        <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center text-[#0A5C36]">
+          <UploadCloud className="w-6 h-6" />
+        </div>
+        <div>
+          <h2 className="text-base font-bold text-[#0A0A0A]">No records found for {statementMonthLabel}</h2>
+          <p className="text-xs text-[#6B7280] mt-1 max-w-md">
+            No bank statement has been uploaded for this period yet. Upload the bank Excel file to populate the register.
+          </p>
+        </div>
+        <button
+          onClick={() => setIsUploadModalOpen(true)}
+          className="inline-flex items-center gap-2 px-4 py-2 bg-[#0A5C36] hover:bg-[#084B26] text-white text-xs font-semibold rounded-lg shadow-xs transition-colors cursor-pointer"
+        >
+          <UploadCloud className="w-3.5 h-3.5" />
+          <span>Import Statement File</span>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-5">

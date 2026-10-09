@@ -56,138 +56,127 @@ export const Sidebar: React.FC = () => {
           </Link>
         </div>
 
-        {/* Navigation Items */}
+        {/* Navigation Items (U1: Overview, BCA Register, Social Schemes, Import, Export) */}
         <div className="flex-1 py-4 px-3 space-y-1.5 overflow-y-auto">
-          {/* Main Dashboard item */}
+          {/* 1. Overview */}
           <button
             onClick={() => {
               setActiveTab('overview');
               if (pathname !== '/') router.push('/');
             }}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all text-left ${
+            className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all text-left cursor-pointer ${
               activeTab === 'overview' && pathname === '/'
                 ? 'bg-[#004D25] text-white shadow-inner border-l-3 border-[#E59819]'
                 : 'text-emerald-100/80 hover:text-white hover:bg-[#004D25]/50'
             }`}
           >
             <Gauge className="w-4 h-4 text-emerald-300 shrink-0" />
-            <span>Dashboard Overview</span>
+            <span>Overview</span>
           </button>
 
-          {/* Section 1: COMMISSION MANAGEMENT */}
-          <div className="pt-3 pb-1 px-3">
-            <span className="text-[10px] font-bold tracking-wider text-emerald-300/70 uppercase">
-              COMMISSION MANAGEMENT
-            </span>
-          </div>
+          {/* 2. BCA Register */}
+          <button
+            onClick={() => {
+              setActiveTab('register');
+              if (pathname !== '/') router.push('/');
+            }}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all text-left cursor-pointer ${
+              activeTab === 'register' && pathname === '/'
+                ? 'bg-[#004D25] text-white shadow-inner border-l-3 border-[#E59819]'
+                : 'text-emerald-100/80 hover:text-white hover:bg-[#004D25]/50'
+            }`}
+          >
+            <Users className="w-4 h-4 text-emerald-300 shrink-0" />
+            <span>BCA Register</span>
+          </button>
 
-          <div>
-            <button
-              onClick={() => toggleSection('commission')}
-              className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium rounded-lg transition-colors ${
-                activeTab === 'register'
-                  ? 'bg-[#004D25] text-white border-l-3 border-[#E59819]'
-                  : 'text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40'
-              }`}
-            >
-              <div className="flex items-center gap-2.5">
-                <Users className="w-4 h-4 text-emerald-300" />
-                <span>BCA Master Register</span>
-              </div>
-              {expandedSection === 'commission' ? (
-                <ChevronDown className="w-3.5 h-3.5 text-emerald-300" />
-              ) : (
-                <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
-              )}
-            </button>
-            {expandedSection === 'commission' && (
-              <div className="pl-9 pr-2 py-1 space-y-1 text-[11px] text-emerald-200">
-                <button
-                  onClick={() => {
-                    setActiveTab('register');
-                    if (pathname !== '/') router.push('/');
-                  }}
-                  className={`w-full text-left py-1 px-2 rounded transition-colors ${
-                    activeTab === 'register' ? 'text-white font-bold bg-[#00381B]' : 'hover:bg-[#004D25]'
-                  }`}
-                >
-                  33-Column Commission Grid
-                </button>
-                <button
-                  onClick={() => {
-                    exportPayoutListPdf();
-                  }}
-                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between"
-                >
-                  <span>Disbursement Payout List</span>
-                  <Receipt className="w-3 h-3 text-emerald-300 opacity-70" />
-                </button>
-                <button
-                  onClick={() => {
-                    exportBulkVouchersPdf();
-                  }}
-                  className="w-full text-left py-1 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between"
-                >
-                  <span>Bulk QR Vouchers</span>
-                  <QrCode className="w-3 h-3 text-emerald-300 opacity-70" />
-                </button>
-              </div>
-            )}
-          </div>
-
-          {/* Section 2: SCHEMES & INSURANCE */}
+          {/* 3. Social Schemes */}
           <button
             onClick={() => {
               setActiveTab('schemes');
               router.push('/social-schemes');
             }}
-            className={`w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors ${
-              pathname === '/social-schemes' ? 'bg-[#004D25] text-white border-l-3 border-[#E59819]' : ''
+            className={`w-full flex items-center gap-3 px-3 py-2.5 text-xs font-semibold rounded-lg transition-all text-left cursor-pointer ${
+              pathname === '/social-schemes'
+                ? 'bg-[#004D25] text-white shadow-inner border-l-3 border-[#E59819]'
+                : 'text-emerald-100/80 hover:text-white hover:bg-[#004D25]/50'
             }`}
           >
-            <div className="flex items-center gap-2.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-300" />
-              <span>Social Security (SSS)</span>
-            </div>
-            <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
+            <ShieldCheck className="w-4 h-4 text-emerald-300 shrink-0" />
+            <span>Social Schemes</span>
           </button>
 
-          {/* Section 3: DATA & EXPORTS */}
           <div className="pt-3 pb-1 px-3">
             <span className="text-[10px] font-bold tracking-wider text-emerald-300/70 uppercase">
-              DATA & EXPORTS
+              ACTIONS
             </span>
           </div>
 
+          {/* 4. Import */}
           <button
             onClick={() => setIsUploadModalOpen(true)}
-            className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors text-left"
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/50 rounded-lg transition-colors text-left cursor-pointer"
           >
-            <UploadCloud className="w-4 h-4 text-emerald-300" />
-            <span>Import Statement File</span>
+            <UploadCloud className="w-4 h-4 text-emerald-300 shrink-0" />
+            <span>Import</span>
           </button>
 
-          <button
-            onClick={() => exportCurrentExcel('month_wise')}
-            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors text-left"
-          >
-            <div className="flex items-center gap-2.5">
-              <FileSpreadsheet className="w-4 h-4 text-emerald-300" />
-              <span>Export Excel Matrix</span>
-            </div>
-            <span className="text-[10px] text-emerald-400 bg-[#004D25] px-1.5 py-0.2 rounded font-mono">33 Col</span>
-          </button>
-
-          <button
-            onClick={exportCurrentPdf}
-            className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors text-left"
-          >
-            <div className="flex items-center gap-2.5">
-              <FileText className="w-4 h-4 text-emerald-300" />
-              <span>Summary PDF Report</span>
-            </div>
-            <span className="text-[10px] text-emerald-400 bg-[#004D25] px-1.5 py-0.2 rounded font-mono">PDF</span>
-          </button>
+          {/* 5. Export */}
+          <div>
+            <button
+              onClick={() => toggleSection('export')}
+              className="w-full flex items-center justify-between px-3 py-2.5 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/50 rounded-lg transition-colors text-left cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-4 h-4 text-emerald-300 shrink-0" />
+                <span>Export</span>
+              </div>
+              {expandedSection === 'export' ? (
+                <ChevronDown className="w-3.5 h-3.5 text-emerald-300" />
+              ) : (
+                <ChevronRight className="w-3.5 h-3.5 text-emerald-400/60" />
+              )}
+            </button>
+            {expandedSection === 'export' && (
+              <div className="pl-9 pr-2 py-1 space-y-1 text-[11px] text-emerald-200">
+                <button
+                  onClick={() => exportCurrentExcel('month_wise')}
+                  className="w-full text-left py-1.5 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>Excel (Month-wise)</span>
+                  <FileSpreadsheet className="w-3 h-3 text-emerald-300 opacity-70" />
+                </button>
+                <button
+                  onClick={() => exportCurrentExcel('cumulative')}
+                  className="w-full text-left py-1.5 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>Excel (Cumulative)</span>
+                  <Layers className="w-3 h-3 text-emerald-300 opacity-70" />
+                </button>
+                <button
+                  onClick={exportPayoutListPdf}
+                  className="w-full text-left py-1.5 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>Payout List (PDF)</span>
+                  <Receipt className="w-3 h-3 text-emerald-300 opacity-70" />
+                </button>
+                <button
+                  onClick={exportCurrentPdf}
+                  className="w-full text-left py-1.5 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>Summary Report (PDF)</span>
+                  <FileText className="w-3 h-3 text-emerald-300 opacity-70" />
+                </button>
+                <button
+                  onClick={exportBulkVouchersPdf}
+                  className="w-full text-left py-1.5 px-2 hover:bg-[#004D25] rounded transition-colors flex items-center justify-between cursor-pointer"
+                >
+                  <span>All QR Vouchers (PDF)</span>
+                  <QrCode className="w-3 h-3 text-emerald-300 opacity-70" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Quiet Footer Links & Logout */}

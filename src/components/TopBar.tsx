@@ -39,6 +39,8 @@ export const TopBar: React.FC = () => {
     exportBulkVouchersPdf,
     isGeneratingBulk,
     bulkProgress,
+    availablePeriods,
+    reconciliation,
     toast,
     dismissToast,
   } = useCommission();
@@ -96,6 +98,16 @@ export const TopBar: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Data status line (U3)
+  const currentPeriodMeta = availablePeriods.find((p) => p.month_year === (monthFrom === monthTo ? monthFrom : monthTo));
+  const importDateStr = currentPeriodMeta?.uploaded_at
+    ? new Date(currentPeriodMeta.uploaded_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    : '9 Oct';
+  const uploaderName = currentPeriodMeta?.uploaded_by || user?.name || 'Admin';
+  const agentCount = filteredRecords.length;
+  const matchStatus = reconciliation.isReconciled ? 'matches file' : 'discrepancy detected';
+  const dataStatusLine = `Data for ${monthFrom === monthTo ? monthFrom : `${monthFrom} - ${monthTo}`}, imported on ${importDateStr} by ${uploaderName}, ${agentCount} agents, ${matchStatus}`;
+
   const scopeLabel = `${filteredRecords.length} BCAs · ${filters.dist || filters.state || 'All Districts'} · ${monthFrom === monthTo ? monthFrom : `${monthFrom} - ${monthTo}`}`;
 
   return (
@@ -117,15 +129,19 @@ export const TopBar: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: Live Clock, Range Period Picker, Upload, Export, Profile */}
+        {/* Right: Data Status Line, Range Period Picker, Upload, Export, Profile */}
         <div className="flex items-center gap-2.5">
-          {/* Live Clock Badge */}
-          <div className="hidden xl:flex items-center gap-2 px-3 py-1 bg-[#F0FDF4] border border-[#DCFCE7] rounded-full text-xs font-medium text-[#166534]">
-            <Calendar className="w-3.5 h-3.5 text-[#15803D]" />
-            <span>{currentDateTime || 'Thursday, 8 October 2026'}</span>
-            <span className="bg-[#0A5C36] text-white text-[10px] font-bold px-2 py-0.5 rounded-full font-mono">
-              {currentTimeStr || '05:18 PM'}
-            </span>
+          {/* Data Status Line (U3) */}
+          <div
+            className={`hidden lg:flex items-center gap-1.5 px-3 py-1 border rounded-lg text-xs font-medium ${
+              reconciliation.isReconciled
+                ? 'bg-[#F0FDF4] border-[#DCFCE7] text-[#166534]'
+                : 'bg-rose-50 border-rose-200 text-rose-700'
+            }`}
+            title={dataStatusLine}
+          >
+            <Check className="w-3.5 h-3.5 text-[#15803D] shrink-0" />
+            <span className="truncate max-w-[340px] xl:max-w-none">{dataStatusLine}</span>
           </div>
 
           {/* Period & Month Range Dropdown (Phase 3 & 6) */}

@@ -64,6 +64,7 @@ interface CommissionContextType {
   filterByDistrict: (district: string) => void;
   filterByNeedsAttention: () => void;
   isLoadingDb: boolean;
+  dbError: string | null;
   reconciliation: ReconciliationStatus;
   refreshData: () => Promise<void>;
 }
@@ -71,11 +72,12 @@ interface CommissionContextType {
 const CommissionContext = createContext<CommissionContextType | undefined>(undefined);
 
 export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [records, setRecords] = useState<CommissionRecord[]>(INITIAL_COMMISSION_RECORDS);
+  const [records, setRecords] = useState<CommissionRecord[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<CommissionRecord | null>(null);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [toast, setToast] = useState<ToastNotification | null>(null);
-  const [isLoadingDb, setIsLoadingDb] = useState(false);
+  const [isLoadingDb, setIsLoadingDb] = useState(true);
+  const [dbError, setDbError] = useState<string | null>(null);
   const [availablePeriods, setAvailablePeriods] = useState<PeriodInfo[]>([]);
 
   // Navigation tab
@@ -89,12 +91,12 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Reconciliation state
   const [reconciliation, setReconciliation] = useState<ReconciliationStatus>({
     isReconciled: true,
-    expectedCount: 675,
-    actualCount: 675,
-    expectedGross: 2925439.5,
-    actualGross: 2925439.5,
+    expectedCount: 0,
+    actualCount: 0,
+    expectedGross: 0,
+    actualGross: 0,
     differenceGross: 0,
-    statusText: '100% Reconciled with Bank File',
+    statusText: 'Loading reconciliation...',
   });
 
   // Filters State
@@ -125,7 +127,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             setFiltersState((prev) => ({ ...prev, monthFrom: latest, monthTo: latest }));
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         console.warn('Periods fetch warning:', e);
       }
     }
@@ -135,6 +137,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   // Fetch Persisted Records for the currently chosen period/range
   const loadRecords = useCallback(async (fromM: string, toM: string) => {
     setIsLoadingDb(true);
+    setDbError(null);
     try {
       const isSingle = fromM === toM;
       let url = isSingle ? `/api/records?month=${encodeURIComponent(fromM)}` : `/api/records?monthFrom=${encodeURIComponent(fromM)}&monthTo=${encodeURIComponent(toM)}`;
@@ -148,9 +151,15 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (json.reconciliation) {
           setReconciliation(json.reconciliation);
         }
+      } else {
+        const errJson = await res.json().catch(() => ({}));
+        setDbError(errJson.error || `Failed to fetch data (status ${res.status})`);
+        setRecords([]);
       }
-    } catch (e) {
-      console.warn('Database load fallback to initial dataset:', e);
+    } catch (e: any) {
+      console.error('Database load error:', e);
+      setDbError(e.message || 'Network connection to database failed.');
+      setRecords([]);
     } finally {
       setIsLoadingDb(false);
     }
@@ -545,6 +554,7 @@ export const CommissionProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         filterByDistrict,
         filterByNeedsAttention,
         isLoadingDb,
+        dbError,
         reconciliation,
         refreshData,
       }}

@@ -102,30 +102,30 @@ export default function LoginPage() {
           </h1>
 
           <p className="text-sm md:text-base text-emerald-100/90 leading-relaxed">
-            One secure workspace for supervisors, staff and CSPs to manage operations, reports and requests.
+            Authorized portal for managing monthly BC commission statements, social security schemes, and payout disbursement vouchers.
           </p>
 
-          {/* 3 Feature Checklist */}
+          {/* 3 Honest Feature Checklist */}
           <div className="space-y-4 pt-2">
             <div className="flex items-center gap-3 text-sm text-emerald-50 font-medium">
               <div className="w-6 h-6 rounded-md bg-emerald-700/60 flex items-center justify-center text-emerald-200 shrink-0">
                 <TrendingUp className="w-4 h-4" />
               </div>
-              <span>Live performance dashboards and reports</span>
-            </div>
-
-            <div className="flex items-center gap-3 text-sm text-emerald-50 font-medium">
-              <div className="w-6 h-6 rounded-md bg-emerald-700/60 flex items-center justify-center text-emerald-200 shrink-0">
-                <HelpCircle className="w-4 h-4" />
-              </div>
-              <span>Help desk tickets and approvals</span>
+              <span>Monthly commission statements with 2% TDS calculations</span>
             </div>
 
             <div className="flex items-center gap-3 text-sm text-emerald-50 font-medium">
               <div className="w-6 h-6 rounded-md bg-emerald-700/60 flex items-center justify-center text-emerald-200 shrink-0">
                 <ShieldCheck className="w-4 h-4" />
               </div>
-              <span>Secure, role-based access</span>
+              <span>Social Security Scheme tracking (APY, PMSBY, PMJJBY)</span>
+            </div>
+
+            <div className="flex items-center gap-3 text-sm text-emerald-50 font-medium">
+              <div className="w-6 h-6 rounded-md bg-emerald-700/60 flex items-center justify-center text-emerald-200 shrink-0">
+                <HelpCircle className="w-4 h-4" />
+              </div>
+              <span>Disbursement payout sheets and QR-verified commission vouchers</span>
             </div>
           </div>
         </div>

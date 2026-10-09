@@ -128,15 +128,9 @@ export async function fetchAllMonthlyRecords(options: {
     console.warn('DB fetch error, checking preloaded data:', e);
   }
 
-  // If DB returned nothing or error, fallback to preloaded dataset
+  // If DB returned nothing or error, return empty array (no silent mock data fallback)
   if (allRows.length === 0) {
-    let list = INITIAL_COMMISSION_RECORDS;
-    if (months && months.length === 1 && months[0] !== 'ALL') {
-      list = list.filter((r) => r.statementMonth === months[0]);
-    } else if (months && months.length > 1) {
-      list = list.filter((r) => months.includes(r.statementMonth));
-    }
-    return list;
+    return [];
   }
 
   return allRows.map(mapMonthlyRecordToCommission);
