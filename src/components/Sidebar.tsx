@@ -168,7 +168,7 @@ export const Sidebar: React.FC = () => {
           </button>
 
           <button
-            onClick={exportCurrentExcel}
+            onClick={() => exportCurrentExcel('month_wise')}
             className="w-full flex items-center justify-between px-3 py-2 text-xs font-medium text-emerald-100/90 hover:text-white hover:bg-[#004D25]/40 rounded-lg transition-colors text-left"
           >
             <div className="flex items-center gap-2.5">

@@ -1,5 +1,10 @@
+if (typeof globalThis.WebSocket === 'undefined') {
+  (globalThis as any).WebSocket = class DummyWebSocket {};
+}
+
 import { createClient } from '@supabase/supabase-js';
 import { CommissionRecord } from '@/types/commission';
+import { normalizeStateName, normalizeZoneName, normalizeDistName } from './normalization';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://sesshjrjyscnnjufypdf.supabase.co';
 const supabaseAnonKey =
@@ -13,12 +18,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
 });
 
 export function mapMonthlyRecordToCommission(r: any): CommissionRecord {
+  const bcComm = Number(r.bc_comm ?? 0);
+  const tdsDeduction = Number((bcComm * 0.02).toFixed(2));
+  const netPayable = Number((bcComm - tdsDeduction).toFixed(2));
+
   return {
     id: `${r.agent_id}_${r.month_year || 'CURRENT'}`,
     statementMonth: r.month_year || 'AUGUST 2026',
-    stateName: r.state_name || '',
-    zoneName: r.zone_name || '',
-    dist: r.dist || '',
+    stateName: normalizeStateName(r.state_name),
+    zoneName: normalizeZoneName(r.zone_name),
+    dist: normalizeDistName(r.dist),
     mandal: r.mandal || '',
     baseBranch: r.base_branch || '',
     solId: r.sol_id || '',
@@ -55,8 +64,10 @@ export function mapMonthlyRecordToCommission(r: any): CommissionRecord {
     reKycCount: Number(r.re_kyc_count ?? 0),
     reKycComm: Number(r.re_kyc_comm ?? 0),
     netCommission: Number(r.net_commission ?? 0),
-    bcComm: Number(r.bc_comm ?? 0),
+    bcComm: bcComm,
     corpComm: Number(r.corp_comm ?? 0),
+    tdsDeduction: tdsDeduction,
+    netPayable: netPayable,
     totalDaysInMonth: Number(r.days_in_month ?? 31),
   };
 }

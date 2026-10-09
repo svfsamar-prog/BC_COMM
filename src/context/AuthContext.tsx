@@ -2,98 +2,108 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-
-export interface UserProfile {
-  username: string;
-  name: string;
-  role: string;
-  avatar?: string;
-  lastLogin: string;
-}
+import { UserSession } from '@/types/commission';
 
 interface AuthContextType {
-  user: UserProfile | null;
+  user: UserSession | null;
   isAuthenticated: boolean;
-  login: (username: string, password: string, captchaEntered: string, captchaExpected: string) => { success: boolean; error?: string };
-  logout: () => void;
+  login: (username: string, password: string, captchaEntered?: string, captchaExpected?: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
   isLoading: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserSession | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const pathname = usePathname();
 
-  // Load session from localStorage on mount
+  // Check server session on mount
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('svf_auth_session');
-      if (savedUser) {
-        setUser(JSON.parse(savedUser));
+    async function checkSession() {
+      try {
+        const res = await fetch('/api/auth/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.authenticated && data.user) {
+            setUser(data.user);
+            localStorage.setItem('svf_auth_session', JSON.stringify(data.user));
+          } else {
+            setUser(null);
+            localStorage.removeItem('svf_auth_session');
+          }
+        } else {
+          // Fallback to local storage if API is momentarily unreachable
+          const saved = localStorage.getItem('svf_auth_session');
+          if (saved) {
+            setUser(JSON.parse(saved));
+          }
+        }
+      } catch (e) {
+        console.warn('Session verification warning:', e);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.warn('Auth session restore error:', e);
-    } finally {
-      setIsLoading(false);
     }
+    checkSession();
   }, []);
 
   // Protected route guard
   useEffect(() => {
     if (!isLoading) {
-      const isPublicRoute = pathname.startsWith('/verify') || pathname === '/login' || pathname === '/terms' || pathname === '/privacy';
+      const isPublicRoute =
+        pathname.startsWith('/verify') ||
+        pathname === '/login' ||
+        pathname === '/terms' ||
+        pathname === '/privacy';
+
       if (!user && !isPublicRoute) {
         router.push('/login');
       }
     }
   }, [user, isLoading, pathname, router]);
 
-  const login = (username: string, password: string, captchaEntered: string, captchaExpected: string) => {
-    const cleanUser = username.trim().toUpperCase();
-    const cleanPass = password.trim();
-    const cleanCaptcha = captchaEntered.trim().toUpperCase();
-    const targetCaptcha = captchaExpected.trim().toUpperCase();
-
-    // 1. Verify Captcha
-    if (cleanCaptcha !== targetCaptcha) {
-      return { success: false, error: 'Invalid security code. Please try again.' };
-    }
-
-    // 2. Validate Credentials (SANJ00103S / admin / samar)
-    const validUsers = ['SANJ00103S', 'ADMIN', 'SAMAR', 'SAMAR RAJ', 'SUPERVISOR'];
-    const validPasswords = ['Sanjivani@2026', 'admin123', 'admin', 'password', 'svf2026'];
-
-    const isValidUser = validUsers.includes(cleanUser) || cleanUser.startsWith('SANJ');
-    const isValidPass = validPasswords.includes(cleanPass) || cleanPass === 'Sanjivani@2026';
-
-    if (!isValidUser || !isValidPass) {
-      return { success: false, error: 'Invalid username or password. Default password is Sanjivani@2026' };
-    }
-
-    const newUser: UserProfile = {
-      username: cleanUser,
-      name: cleanUser === 'SANJ00103S' || cleanUser.includes('SAMAR') ? 'SAMAR RAJ' : cleanUser,
-      role: 'Administrator / State Head',
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=face',
-      lastLogin: new Date().toISOString(),
-    };
-
-    setUser(newUser);
+  const login = async (
+    username: string,
+    password: string,
+    captchaEntered: string = '',
+    captchaExpected: string = ''
+  ): Promise<{ success: boolean; error?: string }> => {
     try {
-      localStorage.setItem('svf_auth_session', JSON.stringify(newUser));
-    } catch (e) {}
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          password,
+          captchaEntered,
+          captchaExpected,
+        }),
+      });
 
-    return { success: true };
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        return { success: false, error: data.error || 'Authentication failed. Please verify your credentials.' };
+      }
+
+      setUser(data.user);
+      localStorage.setItem('svf_auth_session', JSON.stringify(data.user));
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Network error during login' };
+    }
   };
 
-  const logout = () => {
-    setUser(null);
+  const logout = async () => {
     try {
-      localStorage.removeItem('svf_auth_session');
-    } catch (e) {}
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {
+      console.warn('Logout API error:', e);
+    }
+    setUser(null);
+    localStorage.removeItem('svf_auth_session');
     router.push('/login');
   };
 

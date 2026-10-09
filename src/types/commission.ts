@@ -56,6 +56,9 @@ export interface CommissionRecord {
   netCommission: number;
   bcComm: number;
   corpComm: number;
+  tdsDeduction?: number;
+  netPayable?: number;
+  isZeroFilled?: boolean;
 
   // Month metadata
   statementMonth: string; // e.g. "AUGUST 2026"
@@ -93,6 +96,8 @@ export interface SummaryMetrics {
   totalNetCommission: number;
   totalBcCommission: number;
   totalCorpCommission: number;
+  totalTdsDeduction: number;
+  totalNetPayable: number;
 }
 
 export interface HierarchyBreakdown {
@@ -104,4 +109,29 @@ export interface HierarchyBreakdown {
   avgLoginPercentage: number;
   totalBcCommission: number;
   totalNetCommission: number;
+  totalTdsDeduction?: number;
+  totalNetPayable?: number;
 }
+
+export interface UserSession {
+  username: string;
+  name: string;
+  role: 'admin' | 'viewer';
+  allowed_states: string[];
+  allowed_zones: string[];
+  lastLogin?: string;
+}
+
+export interface PeriodInfo {
+  id?: number;
+  month_year: string;
+  year: number;
+  month: number;
+  days_in_month: number;
+  uploaded_at?: string;
+  uploaded_by?: string;
+  rows_count?: number;
+  gross_commission?: number;
+  bc_commission?: number;
+}
+

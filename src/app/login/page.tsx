@@ -4,32 +4,27 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import {
-  Star,
   User,
   Lock,
   Eye,
   EyeOff,
   RotateCw,
-  CheckCircle,
   TrendingUp,
   HelpCircle,
   ShieldCheck,
   AlertCircle,
-  X,
-  Info,
 } from 'lucide-react';
 
 export default function LoginPage() {
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
 
-  const [username, setUsername] = useState('SANJ00103S');
-  const [password, setPassword] = useState('Sanjivani@2026');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [captchaInput, setCaptchaInput] = useState('');
   const [captchaCode, setCaptchaCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [showHelpModal, setShowHelpModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Generate random 5-character alphanumeric captcha
@@ -54,17 +49,22 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
     setIsSubmitting(true);
 
-    const result = login(username, password, captchaInput, captchaCode);
-    if (result.success) {
-      router.push('/');
-    } else {
-      setErrorMessage(result.error || 'Authentication failed. Please verify credentials.');
-      generateCaptcha();
+    try {
+      const result = await login(username, password, captchaInput, captchaCode);
+      if (result.success) {
+        router.push('/');
+      } else {
+        setErrorMessage(result.error || 'Authentication failed. Please verify credentials.');
+        generateCaptcha();
+        setIsSubmitting(false);
+      }
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An error occurred during sign-in.');
       setIsSubmitting(false);
     }
   };
@@ -78,12 +78,15 @@ export default function LoginPage() {
         <div className="absolute -bottom-10 -right-10 w-72 h-72 rounded-full border border-emerald-400/20 pointer-events-none" />
         <div className="absolute bottom-10 right-10 w-48 h-48 rounded-full border border-emerald-400/25 pointer-events-none" />
 
-        {/* Top Header Pill */}
+        {/* Top Header Pill with Favicon Logo (Phase 0 Fix) */}
         <div className="relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#004D25]/60 border border-emerald-500/30 text-xs font-semibold text-emerald-100 shadow-xs">
-            <span className="flex items-center justify-center w-4 h-4 rounded-full bg-[#E59819] text-[#0A5C36]">
-              <Star className="w-2.5 h-2.5 fill-current" />
-            </span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/favicon.ico"
+              alt="SVF"
+              className="w-4 h-4 object-contain rounded-full bg-white p-0.5"
+            />
             <span>Sanjivani Vikas Foundation</span>
           </div>
         </div>
@@ -180,7 +183,7 @@ export default function LoginPage() {
                   required
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="SANJ00103S"
+                  placeholder="Enter your username"
                   className="w-full pl-9 pr-3 py-2 bg-[#F8FAFC] border border-[#D1D5DB] rounded-lg text-xs font-medium text-[#0A0A0A] placeholder-[#9CA3AF] focus:outline-none focus:ring-2 focus:ring-[#0A5C36] focus:border-transparent transition-all"
                 />
               </div>
@@ -221,7 +224,6 @@ export default function LoginPage() {
               <div className="flex items-center gap-2">
                 {/* Stylized Captcha Canvas Box */}
                 <div className="flex-1 h-11 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg flex items-center justify-center tracking-[0.4em] font-serif text-xl font-bold text-[#0D6832] select-none shadow-inner bg-linear-to-r from-emerald-50 via-teal-50 to-slate-50 relative overflow-hidden">
-                  {/* Decorative wavy lines across captcha */}
                   <div className="absolute inset-0 opacity-20 pointer-events-none flex items-center justify-around">
                     <span className="w-full h-0.5 bg-emerald-600 rotate-3 transform" />
                   </div>
@@ -266,23 +268,11 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full py-2.5 px-4 bg-[#0A5C36] hover:bg-[#084B26] text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2"
+              className="w-full py-2.5 px-4 bg-[#0A5C36] hover:bg-[#084B26] text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2 cursor-pointer"
             >
               <span>{isSubmitting ? 'Signing in...' : 'Sign in'}</span>
             </button>
           </form>
-
-          {/* First Time Signing in Helper */}
-          <div className="text-center pt-2">
-            <button
-              type="button"
-              onClick={() => setShowHelpModal(true)}
-              className="text-xs text-[#0A5C36] hover:underline font-medium inline-flex items-center gap-1"
-            >
-              <span>First time signing in?</span>
-              <span className="font-bold underline">View your default password</span>
-            </button>
-          </div>
 
           {/* Authorized Footer */}
           <div className="text-center pt-4 border-t border-[#F3F4F6] flex items-center justify-center gap-1.5 text-[11px] text-[#6B7280]">
@@ -291,54 +281,6 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
-
-      {/* Default Credentials Modal */}
-      {showHelpModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-2xl p-6 max-w-sm w-full border border-[#E5E7EB] space-y-4 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-[#E5E7EB] pb-3">
-              <div className="flex items-center gap-2 text-sm font-bold text-[#0A0A0A]">
-                <Info className="w-4 h-4 text-[#0A5C36]" />
-                <span>Default Access Credentials</span>
-              </div>
-              <button
-                onClick={() => setShowHelpModal(false)}
-                className="text-[#9CA3AF] hover:text-[#0A0A0A]"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs text-[#374151]">
-              <p>You can sign in with your supervisor or administrator credentials:</p>
-              <div className="p-3 bg-[#F8FAFC] rounded-lg border border-[#E2E8F0] space-y-1.5 font-mono">
-                <div className="flex justify-between">
-                  <span className="text-[#6B7280]">Username:</span>
-                  <span className="font-bold text-[#0A5C36]">SANJ00103S</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-[#6B7280]">Password:</span>
-                  <span className="font-bold text-[#0A5C36]">Sanjivani@2026</span>
-                </div>
-              </div>
-              <p className="text-[11px] text-[#6B7280]">
-                All administrative operations and financial exports are digitally signed and recorded in the audit log.
-              </p>
-            </div>
-
-            <button
-              onClick={() => {
-                setUsername('SANJ00103S');
-                setPassword('Sanjivani@2026');
-                setShowHelpModal(false);
-              }}
-              className="w-full py-2 bg-[#0A5C36] hover:bg-[#084B26] text-white text-xs font-semibold rounded-lg transition-colors"
-            >
-              Fill Default Credentials
-            </button>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

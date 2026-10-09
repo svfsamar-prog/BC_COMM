@@ -1,25 +1,18 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { useCommission } from '@/context/CommissionContext';
 import { FilterDropdownsBar } from '@/components/FilterDropdownsBar';
 import { AgentDataTable } from '@/components/AgentDataTable';
 import {
   Users,
-  Receipt,
-  QrCode,
-  FileSpreadsheet,
   ShieldCheck,
-  UploadCloud,
-  CalendarCheck,
-  FileText,
+  TrendingUp,
   AlertCircle,
   ArrowRight,
-  Pause,
-  Play,
-  X,
-  TrendingUp,
-  Download,
+  Shield,
+  Activity,
+  CheckCircle2,
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -28,26 +21,19 @@ export default function HomePage() {
     filteredRecords,
     summaryMetrics,
     selectedPeriod,
+    statementMonthLabel,
     activeTab,
     setActiveTab,
     filterByDistrict,
     filterByNeedsAttention,
     setSelectedAgent,
-    setIsUploadModalOpen,
-    exportCurrentPdf,
-    exportPayoutListPdf,
-    exportBulkVouchersPdf,
-    exportCurrentExcel,
+    reconciliation,
   } = useCommission();
-
-  const [isTickerPaused, setIsTickerPaused] = useState(false);
-  const [showNotice, setShowNotice] = useState(true);
 
   // District Commission Aggregations for the Bar Chart
   const districtAggregates = useMemo(() => {
     const map = new Map<string, { dist: string; totalComm: number; bcaCount: number }>();
     records.forEach((r) => {
-      if (selectedPeriod !== 'ALL' && selectedPeriod && r.statementMonth !== selectedPeriod) return;
       const d = r.dist || 'Other';
       const curr = map.get(d) || { dist: d, totalComm: 0, bcaCount: 0 };
       curr.totalComm += r.bcComm;
@@ -56,8 +42,8 @@ export default function HomePage() {
     });
     return Array.from(map.values())
       .sort((a, b) => b.totalComm - a.totalComm)
-      .slice(0, 8); // Top 8 districts for clean bar chart
-  }, [records, selectedPeriod]);
+      .slice(0, 8);
+  }, [records]);
 
   const maxDistrictComm = useMemo(() => {
     return Math.max(...districtAggregates.map((d) => d.totalComm), 1);
@@ -65,20 +51,13 @@ export default function HomePage() {
 
   // Top 5 BCAs by Payout
   const top5Bcas = useMemo(() => {
-    const list = records.filter((r) => {
-      if (selectedPeriod !== 'ALL' && selectedPeriod && r.statementMonth !== selectedPeriod) return false;
-      return true;
-    });
-    return [...list].sort((a, b) => b.bcComm - a.bcComm).slice(0, 5);
-  }, [records, selectedPeriod]);
+    return [...records].sort((a, b) => (b.bcComm || 0) - (a.bcComm || 0)).slice(0, 5);
+  }, [records]);
 
   // Needs Attention Count (< 15 Login Days)
   const needsAttentionCount = useMemo(() => {
-    return records.filter((r) => {
-      if (selectedPeriod !== 'ALL' && selectedPeriod && r.statementMonth !== selectedPeriod) return false;
-      return r.loginDays < 15;
-    }).length;
-  }, [records, selectedPeriod]);
+    return records.filter((r) => r.loginDays < 15).length;
+  }, [records]);
 
   // Indian compact currency format
   const formatCompactInr = (num: number) => {
@@ -91,182 +70,201 @@ export default function HomePage() {
     return `₹${num.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
   };
 
-  // Commission Action Modules with Screenshot Design Language
-  const commissionModules = [
-    {
-      id: 'register',
-      title: 'COMMISSION MASTER REGISTER',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: Users,
-      btnLabel: 'View Register',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setActiveTab('register'),
-    },
-    {
-      id: 'payout_list',
-      title: 'BCA DISBURSEMENT PAYOUT LIST',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: Receipt,
-      btnLabel: 'Export PDF',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => exportPayoutListPdf(),
-    },
-    {
-      id: 'vouchers',
-      title: 'ALL VOUCHERS (QR VERIFIED)',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: QrCode,
-      btnLabel: 'Generate All',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => exportBulkVouchersPdf(),
-    },
-    {
-      id: 'excel_export',
-      title: 'STATEMENT EXCEL (33 COLUMNS)',
-      accentColor: 'border-l-4 border-l-[#3B82F6]',
-      textColor: 'text-[#2563EB]',
-      icon: FileSpreadsheet,
-      btnLabel: 'Download Excel',
-      btnBg: 'bg-[#4338CA] hover:bg-[#3730A3] text-white',
-      action: () => exportCurrentExcel(),
-    },
-    {
-      id: 'schemes',
-      title: 'SOCIAL SECURITY SCHEMES (SSS)',
-      accentColor: 'border-l-4 border-l-[#3B82F6]',
-      textColor: 'text-[#2563EB]',
-      icon: ShieldCheck,
-      btnLabel: 'Open Portal',
-      btnBg: 'bg-[#4338CA] hover:bg-[#3730A3] text-white',
-      action: () => {
-        window.location.href = '/social-schemes';
-      },
-    },
-    {
-      id: 'upload_statement',
-      title: 'MONTHLY STATEMENT IMPORT',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: UploadCloud,
-      btnLabel: 'Upload File',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => setIsUploadModalOpen(true),
-    },
-    {
-      id: 'attendance',
-      title: 'ATTENDANCE & LOGIN TARGETS',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: CalendarCheck,
-      btnLabel: 'Review List',
-      btnBg: 'bg-[#E59819] hover:bg-[#D97706] text-white',
-      action: () => filterByNeedsAttention(),
-    },
-    {
-      id: 'summary_report',
-      title: 'REGIONAL SUMMARY REPORT',
-      accentColor: 'border-l-4 border-l-[#15803D]',
-      textColor: 'text-[#15803D]',
-      icon: FileText,
-      btnLabel: 'Generate PDF',
-      btnBg: 'bg-[#15803D] hover:bg-[#166534] text-white',
-      action: () => exportCurrentPdf(),
-    },
-  ];
-
   return (
     <div className="space-y-5">
-      {/* 1. Ticker / Notice Banner (Matching Screenshot Design) */}
-      {showNotice && (
-        <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-lg shadow-xs overflow-hidden flex items-center justify-between px-3 py-1.5 text-xs text-[#92400E]">
-          <div className="flex items-center gap-3 overflow-hidden flex-1 mr-4">
-            {/* Saffron NOTICE Badge */}
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-[#D97706] text-white font-bold rounded text-[11px] uppercase tracking-wider shrink-0 shadow-xs">
-              <span>NOTICE</span>
-            </div>
-
-            {/* Marquee Notice Content */}
-            <div className="overflow-hidden whitespace-nowrap flex-1">
-              <div className={`inline-block font-medium ${isTickerPaused ? '' : 'animate-marquee'}`}>
-                Ensure to follow the working hours from 8 AM to 8 PM - Keep the working place clean with proper sitting arrangements for the customer - All Business Correspondents must complete monthly statement reconciliation by 10th of every month - APY, PMSBY, PMJJBY social security schemes must be strictly enrolled as per RBI & DFS guidelines.
-              </div>
-            </div>
+      {/* 1. Header Banner & Reconciliation Status */}
+      <div className="bg-white border border-[#E5E7EB] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+        <div>
+          <div className="flex items-center gap-2">
+            <h1 className="text-lg font-bold text-[#0A0A0A]">
+              Commission Statement Overview
+            </h1>
+            <span className="text-xs bg-emerald-100 text-[#0A5C36] font-bold px-2 py-0.5 rounded-full">
+              {statementMonthLabel}
+            </span>
           </div>
-
-          {/* Controls */}
-          <div className="flex items-center gap-1.5 shrink-0 text-[#B45309]">
-            <button
-              onClick={() => setIsTickerPaused(!isTickerPaused)}
-              className="p-1 hover:bg-[#FEF3C7] rounded text-[#92400E]"
-              title={isTickerPaused ? 'Play Notice' : 'Pause Notice'}
-            >
-              {isTickerPaused ? <Play className="w-3.5 h-3.5" /> : <Pause className="w-3.5 h-3.5" />}
-            </button>
-            <button
-              onClick={() => setShowNotice(false)}
-              className="p-1 hover:bg-[#FEF3C7] rounded text-[#92400E]"
-              title="Close Notice"
-            >
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
+          <p className="text-xs text-[#6B7280] mt-0.5">
+            Real-time financial reconciliation and performance metrics
+          </p>
         </div>
-      )}
 
-      {/* 2. Commission Action Module Cards (Clean card styling matching screenshot) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
-        {commissionModules.map((mod) => {
-          const Icon = mod.icon;
-          return (
-            <div
-              key={mod.id}
-              className={`bg-white rounded-lg p-3.5 shadow-xs border border-[#E5E7EB] ${mod.accentColor} flex flex-col justify-between hover:shadow-md transition-shadow`}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <h4 className={`text-[11px] font-bold tracking-tight uppercase leading-snug ${mod.textColor}`}>
-                  {mod.title}
-                </h4>
-                <Icon className="w-5 h-5 text-[#9CA3AF]/40 shrink-0" />
-              </div>
-
-              <div className="mt-4 pt-2">
-                <button
-                  onClick={mod.action}
-                  className={`px-4 py-1 rounded text-[11px] font-bold transition-all shadow-xs ${mod.btnBg}`}
-                >
-                  {mod.btnLabel}
-                </button>
-              </div>
+        {/* Reconciliation Status Badge */}
+        <div className="flex items-center gap-2">
+          {reconciliation.isReconciled ? (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-[#F0FDF4] border border-[#BBF7D0] rounded-lg text-xs font-semibold text-[#15803D]">
+              <CheckCircle2 className="w-4 h-4 text-[#15803D]" />
+              <span>{reconciliation.statusText}</span>
+              <span className="text-[11px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded font-mono">
+                {reconciliation.actualCount} Agents
+              </span>
             </div>
-          );
-        })}
+          ) : (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-lg text-xs font-semibold text-rose-700">
+              <AlertCircle className="w-4 h-4 text-rose-600" />
+              <span>Discrepancy: {reconciliation.actualCount} / {reconciliation.expectedCount} Agents</span>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* 3. Tab Switcher Header (Overview vs BCA Master Register) */}
-      <div className="flex items-center justify-between border-b border-[#E5E7EB] pt-3 pb-3">
+      {/* 2. Key Metric Cards (Phase 4 Default Dashboard) */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+        {/* Card 1: Total Agents */}
+        <div className="bg-white p-3.5 rounded-xl border border-[#E5E7EB] space-y-1">
+          <div className="flex items-center justify-between text-[#6B7280]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">Total Agents</span>
+            <Users className="w-4 h-4 text-[#9CA3AF]" />
+          </div>
+          <div className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums">
+            {summaryMetrics.totalAgents.toLocaleString()}
+          </div>
+          <div className="text-[10px] text-[#6B7280]">
+            <strong className="text-[#0A5C36]">{summaryMetrics.activeAgents}</strong> Active (&gt;0 days)
+          </div>
+        </div>
+
+        {/* Card 2: Avg Login % */}
+        <div className="bg-white p-3.5 rounded-xl border border-[#E5E7EB] space-y-1">
+          <div className="flex items-center justify-between text-[#6B7280]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">Attendance</span>
+            <Activity className="w-4 h-4 text-[#9CA3AF]" />
+          </div>
+          <div className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums">
+            {summaryMetrics.avgLoginPercentage}%
+          </div>
+          <div className="text-[10px] text-[#6B7280]">Average across terminals</div>
+        </div>
+
+        {/* Card 3: Gross Commission */}
+        <div className="bg-white p-3.5 rounded-xl border border-[#E5E7EB] space-y-1 border-t-3 border-t-[#0A5C36]">
+          <div className="flex items-center justify-between text-[#6B7280]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">Gross Commission</span>
+            <TrendingUp className="w-4 h-4 text-[#0A5C36]" />
+          </div>
+          <div className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums">
+            {formatCompactInr(summaryMetrics.totalNetCommission)}
+          </div>
+          <div className="text-[10px] text-[#6B7280] truncate" title={`Exact: ₹${summaryMetrics.totalNetCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}>
+            ₹{summaryMetrics.totalNetCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </div>
+        </div>
+
+        {/* Card 4: BCA Payout (80%) */}
+        <div className="bg-[#F0FDF4] p-3.5 rounded-xl border border-[#BBF7D0] space-y-1 border-t-3 border-t-[#15803D]">
+          <div className="flex items-center justify-between text-[#166534]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">BCA Payout (80%)</span>
+            <span className="text-[10px] bg-emerald-200 text-[#166534] font-bold px-1.5 py-0.2 rounded">80%</span>
+          </div>
+          <div className="text-2xl font-extrabold text-[#15803D] tabular-nums">
+            {formatCompactInr(summaryMetrics.totalBcCommission)}
+          </div>
+          <div className="text-[10px] text-[#166534] truncate">
+            ₹{summaryMetrics.totalBcCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </div>
+        </div>
+
+        {/* Card 5: Corporate Share (20%) */}
+        <div className="bg-white p-3.5 rounded-xl border border-[#E5E7EB] space-y-1 border-t-3 border-t-[#0A5C36]">
+          <div className="flex items-center justify-between text-[#6B7280]">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">Corporate Share</span>
+            <span className="text-[10px] bg-slate-100 text-[#475569] font-bold px-1.5 py-0.2 rounded">20%</span>
+          </div>
+          <div className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums">
+            {formatCompactInr(summaryMetrics.totalCorpCommission)}
+          </div>
+          <div className="text-[10px] text-[#6B7280] truncate">
+            ₹{summaryMetrics.totalCorpCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </div>
+        </div>
+
+        {/* Card 6: TDS Deduction (2%) */}
+        <div className="bg-amber-50/70 p-3.5 rounded-xl border border-amber-200 space-y-1 border-t-3 border-t-amber-600">
+          <div className="flex items-center justify-between text-amber-900">
+            <span className="text-[11px] font-semibold uppercase tracking-wider">TDS (2% BCA)</span>
+            <span className="text-[10px] bg-amber-200 text-amber-900 font-bold px-1.5 py-0.2 rounded">2%</span>
+          </div>
+          <div className="text-2xl font-extrabold text-amber-900 tabular-nums">
+            {formatCompactInr(summaryMetrics.totalTdsDeduction)}
+          </div>
+          <div className="text-[10px] text-amber-800 truncate">
+            Net: {formatCompactInr(summaryMetrics.totalNetPayable)}
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Social Security Schemes (SSS) Summary Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {/* APY */}
+        <div className="bg-white p-4 rounded-xl border border-[#E5E7EB] flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-[#475569] uppercase tracking-wider">Atal Pension (APY)</span>
+            <div className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums">
+              {summaryMetrics.totalApyCount.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">policies</span>
+            </div>
+            <div className="text-xs text-[#0A5C36] font-semibold">
+              Comm: ₹{summaryMetrics.totalApyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-emerald-50 text-[#0A5C36] flex items-center justify-center font-bold">
+            <Shield className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* PMSBY */}
+        <div className="bg-white p-4 rounded-xl border border-[#E5E7EB] flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-[#475569] uppercase tracking-wider">Suraksha Bima (PMSBY)</span>
+            <div className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums">
+              {summaryMetrics.totalSbyCount.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">policies</span>
+            </div>
+            <div className="text-xs text-[#0A5C36] font-semibold">
+              Comm: ₹{summaryMetrics.totalSbyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+        </div>
+
+        {/* PMJJBY */}
+        <div className="bg-white p-4 rounded-xl border border-[#E5E7EB] flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-xs font-bold text-[#475569] uppercase tracking-wider">Jeevan Jyoti (PMJJBY)</span>
+            <div className="text-2xl font-extrabold text-[#0A0A0A] tabular-nums">
+              {summaryMetrics.totalJbyCount.toLocaleString()} <span className="text-xs font-normal text-[#6B7280]">policies</span>
+            </div>
+            <div className="text-xs text-[#0A5C36] font-semibold">
+              Comm: ₹{summaryMetrics.totalJbyComm.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+            </div>
+          </div>
+          <div className="w-10 h-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+            <ShieldCheck className="w-5 h-5" />
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Tab Switcher (Overview vs BCA Master Register) */}
+      <div className="flex items-center justify-between border-b border-[#E5E7EB] pt-1 pb-3">
         <div className="flex items-center gap-1.5 bg-[#F1F5F9] p-1 rounded-lg">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all ${
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeTab === 'overview'
                 ? 'bg-white text-[#0A5C36] shadow-xs'
                 : 'text-[#64748B] hover:text-[#0A0A0A]'
             }`}
           >
-            Performance Overview
+            Dashboard Performance
           </button>
           <button
             onClick={() => setActiveTab('register')}
-            className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 ${
+            className={`px-3.5 py-1.5 text-xs font-semibold rounded-md transition-all flex items-center gap-2 cursor-pointer ${
               activeTab === 'register'
                 ? 'bg-white text-[#0A5C36] shadow-xs'
                 : 'text-[#64748B] hover:text-[#0A0A0A]'
             }`}
           >
-            <span>Commission Master Register</span>
+            <span>Commission Register</span>
             <span className="text-[10px] bg-[#E2E8F0] text-[#0A5C36] font-bold px-1.5 py-0.2 rounded-full font-mono">
               {filteredRecords.length}
             </span>
@@ -274,65 +272,25 @@ export default function HomePage() {
         </div>
 
         <div className="text-xs text-[#6B7280]">
-          Statement: <span className="font-bold text-[#0A5C36]">{selectedPeriod === 'ALL' ? 'All Months' : selectedPeriod}</span>
+          Statement: <span className="font-bold text-[#0A5C36]">{statementMonthLabel}</span>
         </div>
       </div>
 
       {activeTab === 'overview' ? (
         /* ==================== OVERVIEW VIEW ==================== */
-        <div className="space-y-6 animate-in fade-in duration-150">
-          {/* 3 Headline Numbers */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 1. Gross Commission */}
-            <div className="clean-card p-5 space-y-1 bg-white border border-[#E5E7EB] border-t-3 border-t-[#0A5C36]">
-              <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Gross Reconciled Commission</span>
-              <div className="text-3xl font-extrabold text-[#0A0A0A] tabular-nums tracking-tight">
-                {formatCompactInr(summaryMetrics.totalNetCommission)}
-              </div>
-              <div className="flex items-center justify-between text-xs text-[#6B7280] pt-1">
-                <span>Exact: ₹{summaryMetrics.totalNetCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                <span className="text-[11px] text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded font-bold">100% Reconciled</span>
-              </div>
-            </div>
-
-            {/* 2. BCA Payout (80%) */}
-            <div className="clean-card p-5 space-y-1 bg-[#F0FDF4] border border-[#BBF7D0] border-t-3 border-t-[#15803D]">
-              <span className="text-xs font-semibold text-[#166534] uppercase tracking-wider">BCA Disbursement (80% Share)</span>
-              <div className="text-3xl font-extrabold text-[#15803D] tabular-nums tracking-tight">
-                {formatCompactInr(summaryMetrics.totalBcCommission)}
-              </div>
-              <div className="flex items-center justify-between text-xs text-[#166534] pt-1">
-                <span>Exact: ₹{summaryMetrics.totalBcCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                <span className="font-bold">{summaryMetrics.totalAgents} Active BCAs</span>
-              </div>
-            </div>
-
-            {/* 3. Corporate Share (20%) */}
-            <div className="clean-card p-5 space-y-1 bg-white border border-[#E5E7EB] border-t-3 border-t-[#0A5C36]">
-              <span className="text-xs font-semibold text-[#6B7280] uppercase tracking-wider">Corporate Share (20%)</span>
-              <div className="text-3xl font-extrabold text-[#0A5C36] tabular-nums tracking-tight">
-                {formatCompactInr(summaryMetrics.totalCorpCommission)}
-              </div>
-              <div className="flex items-center justify-between text-xs text-[#6B7280] pt-1">
-                <span>Exact: ₹{summaryMetrics.totalCorpCommission.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
-                <span>Sanjivani Foundation</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 2 Visuals: Commission by District Bar Chart + Top 5 BCAs */}
+        <div className="space-y-5 animate-in fade-in duration-150">
+          {/* Visuals: District Breakdown + Top 5 BCAs */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-            {/* Visual 1: Commission by District (Clickable Bars) */}
-            <div className="lg:col-span-2 clean-card p-5 space-y-4 bg-white border border-[#E5E7EB]">
+            {/* Visual 1: Commission by District */}
+            <div className="lg:col-span-2 bg-white rounded-xl p-5 space-y-4 border border-[#E5E7EB]">
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-sm font-bold text-[#0A0A0A]">District-Wise Commission Breakdown</h3>
-                  <p className="text-xs text-[#6B7280]">Click any district bar to filter the BCA Register</p>
+                  <p className="text-xs text-[#6B7280]">Click any district bar to filter the Commission Register</p>
                 </div>
                 <span className="text-xs text-[#0A5C36] font-bold">BCA 80% Share</span>
               </div>
 
-              {/* Horizontal / Bar visualization */}
               <div className="space-y-3 pt-2">
                 {districtAggregates.map((item) => {
                   const percentage = Math.round((item.totalComm / maxDistrictComm) * 100);
@@ -353,7 +311,6 @@ export default function HomePage() {
                           ₹{item.totalComm.toLocaleString('en-IN', { maximumFractionDigits: 0 })}
                         </span>
                       </div>
-                      {/* Bar Track */}
                       <div className="w-full h-2 bg-[#F1F5F9] rounded-full overflow-hidden">
                         <div
                           className="h-full bg-[#0A5C36] group-hover:bg-[#15803D] transition-all duration-300 rounded-full"
@@ -367,7 +324,7 @@ export default function HomePage() {
             </div>
 
             {/* Visual 2: Top 5 BCAs */}
-            <div className="clean-card p-5 space-y-4 flex flex-col justify-between bg-white border border-[#E5E7EB]">
+            <div className="bg-white rounded-xl p-5 space-y-4 flex flex-col justify-between border border-[#E5E7EB]">
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-sm font-bold text-[#0A0A0A]">Top Performing BCAs</h3>
@@ -405,7 +362,7 @@ export default function HomePage() {
 
               <button
                 onClick={() => setActiveTab('register')}
-                className="w-full mt-3 py-2 px-3 text-xs font-bold text-white bg-[#0A5C36] hover:bg-[#084B26] rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-xs"
+                className="w-full mt-3 py-2 px-3 text-xs font-bold text-white bg-[#0A5C36] hover:bg-[#084B26] rounded-lg transition-colors flex items-center justify-center gap-1.5 shadow-xs cursor-pointer"
               >
                 <span>View All {records.length} BCAs</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -414,7 +371,7 @@ export default function HomePage() {
           </div>
 
           {/* Needs Attention Module */}
-          <div className="clean-card p-4 flex items-center justify-between bg-[#FFFBEB] border border-[#FDE68A] rounded-lg">
+          <div className="p-4 flex items-center justify-between bg-[#FFFBEB] border border-[#FDE68A] rounded-xl">
             <div className="flex items-center gap-3">
               <AlertCircle className="w-4 h-4 text-[#D97706] shrink-0" />
               <div>
@@ -426,7 +383,7 @@ export default function HomePage() {
             </div>
             <button
               onClick={filterByNeedsAttention}
-              className="flex items-center gap-1 text-xs font-bold text-[#92400E] hover:underline whitespace-nowrap ml-4"
+              className="flex items-center gap-1 text-xs font-bold text-[#92400E] hover:underline whitespace-nowrap ml-4 cursor-pointer"
             >
               <span>View list</span>
               <ArrowRight className="w-3.5 h-3.5" />
